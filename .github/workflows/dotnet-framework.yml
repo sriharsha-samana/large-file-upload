@@ -29,6 +29,6 @@ jobs:
 
       - name: Run MSTest unit tests
         run: |
-          $testDll = "LargeFileUpload.Tests\\bin\\Debug\\LargeFileUpload.Tests.dll"
-          & "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\Extensions\\TestPlatform\\vstest.console.exe" $testDll
-        shell: pwsh
+          $testDll = "LargeFileUpload.Tests\bin\Debug\LargeFileUpload.Tests.dll"
+          & "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\IDE\Extensions\TestPlatform\vstest.console.exe" $testDll
+        shell: powershell
