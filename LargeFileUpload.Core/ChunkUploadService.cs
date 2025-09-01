@@ -49,9 +49,13 @@ public class ChunkUploadService
 		var tempPath = chunkPath + ".tmp";
 		try
 		{
-			using var fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None);
-			using var gzip = new GZipStream(fs, CompressionMode.Compress);
-			gzip.Write(chunkData, 0, chunkData.Length);
+			using (var fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
+			{
+				using (var gzip = new GZipStream(fs, CompressionMode.Compress))
+				{
+					gzip.Write(chunkData, 0, chunkData.Length);
+				}
+			}
 			if (File.Exists(chunkPath)) File.Delete(chunkPath);
 			File.Move(tempPath, chunkPath);
 		}
@@ -86,9 +90,11 @@ public class ChunkUploadService
 	private static bool IsValidChunkHash(byte[] chunkData, string chunkHash)
 	{
 		if (string.IsNullOrEmpty(chunkHash)) return true;
-		using var sha256 = SHA256.Create();
-		var computedHash = BitConverter.ToString(sha256.ComputeHash(chunkData)).Replace("-", "").ToLower();
-		return string.Equals(computedHash, chunkHash, StringComparison.OrdinalIgnoreCase);
+		using (var sha256 = SHA256.Create())
+		{
+			var computedHash = BitConverter.ToString(sha256.ComputeHash(chunkData)).Replace("-", "").ToLower();
+			return string.Equals(computedHash, chunkHash, StringComparison.OrdinalIgnoreCase);
+		}
 	}
 
 	private static bool TryReassembleFile(string fileDir, int totalChunks, string fileId, string[] chunkFiles, out string error)
@@ -97,46 +103,52 @@ public class ChunkUploadService
 		var finalPath = Path.Combine(ChunkUploadConstants.UploadRoot, fileId + ".complete");
 		try
 		{
-			using var output = File.Create(finalPath);
-			// Ensure all chunks exist and are in order
-			for (int i = 0; i < totalChunks; i++)
+			using (var output = File.Create(finalPath))
 			{
-				var path = Path.Combine(fileDir, $"chunk_{i:D6}.gz");
-				if (!File.Exists(path))
+				// Ensure all chunks exist and are in order
+				for (int i = 0; i < totalChunks; i++)
 				{
-					error = $"Missing chunk file: chunk_{i:D6}.gz";
-					return false;
-				}
-			}
-
-			// Optionally: parallelize reading chunks for very large files (advanced)
-			for (int i = 0; i < totalChunks; i++)
-			{
-				var path = Path.Combine(fileDir, $"chunk_{i:D6}.gz");
-				try
-				{
-					using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-					using var gzip = new GZipStream(fs, CompressionMode.Decompress);
-					byte[] buffer = new byte[BufferSize];
-					int read;
-					while ((read = gzip.Read(buffer, 0, buffer.Length)) > 0)
+					var path = Path.Combine(fileDir, $"chunk_{i:D6}.gz");
+					if (!File.Exists(path))
 					{
-						output.Write(buffer, 0, read);
+						error = $"Missing chunk file: chunk_{i:D6}.gz";
+						return false;
 					}
 				}
-				catch (Exception ex)
+
+				// Optionally: parallelize reading chunks for very large files (advanced)
+				for (int i = 0; i < totalChunks; i++)
 				{
-					error = $"Error reading chunk {i}: {ex.Message}";
+					var path = Path.Combine(fileDir, $"chunk_{i:D6}.gz");
+					try
+					{
+						using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+						{
+							using (var gzip = new GZipStream(fs, CompressionMode.Decompress))
+							{
+								byte[] buffer = new byte[BufferSize];
+								int read;
+								while ((read = gzip.Read(buffer, 0, buffer.Length)) > 0)
+								{
+									output.Write(buffer, 0, read);
+								}
+							}
+						}
+					}
+					catch (Exception ex)
+					{
+						error = $"Error reading chunk {i}: {ex.Message}";
+						return false;
+					}
+				}
+				var finalInfo = new FileInfo(finalPath);
+				if (finalInfo.Length > ChunkUploadConstants.MaxFileSize)
+				{
+					File.Delete(finalPath);
+					foreach (var f in chunkFiles) File.Delete(f);
+					error = "File exceeds maximum allowed size of 100GB after reassembly.";
 					return false;
 				}
-			}
-			var finalInfo = new FileInfo(finalPath);
-			if (finalInfo.Length > ChunkUploadConstants.MaxFileSize)
-			{
-				File.Delete(finalPath);
-				foreach (var f in chunkFiles) File.Delete(f);
-				error = "File exceeds maximum allowed size of 100GB after reassembly.";
-				return false;
 			}
 		}
 		catch (Exception ex)
