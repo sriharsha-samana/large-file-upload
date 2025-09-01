@@ -66,28 +66,28 @@ namespace LargeFileUpload.Tests.Controllers
             Assert.Equal("fileId or fileName too long.", result.Error);
         }
 
-        [Fact]
-        public void UploadChunk_FileNameTooLong_ReturnsBadRequest()
+    [TestMethod]
+    public void UploadChunk_FileNameTooLong_ReturnsBadRequest()
         {
             var service = new ChunkUploadService();
             var longName = new string('b', 513) + ".zip";
             var result = service.UploadChunk("file1", 0, 1, string.Empty, new byte[1024 * 1024], longName);
-            Assert.False(result.Success);
-            Assert.Equal("fileId or fileName too long.", result.Error);
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual("fileId or fileName too long.", result.Error);
         }
 
-        [Fact]
-        public void UploadChunk_ChunkHashMismatch_ReturnsBadRequest()
+    [TestMethod]
+    public void UploadChunk_ChunkHashMismatch_ReturnsBadRequest()
         {
             var service = new ChunkUploadService();
             var data = new byte[ChunkUploadConstants.MinChunkSize];
             var result = service.UploadChunk("file1", 0, 1, "deadbeef", data, "test.zip");
-            Assert.False(result.Success);
-            Assert.Equal("Chunk hash mismatch.", result.Error);
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual("Chunk hash mismatch.", result.Error);
         }
 
-        [Fact]
-        public void UploadChunk_ValidChunk_ReturnsSuccess()
+    [TestMethod]
+    public void UploadChunk_ValidChunk_ReturnsSuccess()
         {
             var service = new ChunkUploadService();
             var data = new byte[ChunkUploadConstants.MinChunkSize];
@@ -95,14 +95,14 @@ namespace LargeFileUpload.Tests.Controllers
             {
                 var hash = BitConverter.ToString(sha256.ComputeHash(data)).Replace("-", "").ToLower();
                 var result = service.UploadChunk("file1", 0, 1, hash, data, "test.zip");
-                Assert.True(result.Success);
-                Assert.Equal(0, result.ChunkIndex);
-                Assert.Equal("uploaded", result.Status);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(0, result.ChunkIndex);
+                Assert.AreEqual("uploaded", result.Status);
             }
         }
 
-        [Fact]
-        public void UploadChunk_LastChunkCanBeSmall_ReturnsSuccess()
+    [TestMethod]
+    public void UploadChunk_LastChunkCanBeSmall_ReturnsSuccess()
         {
             var service = new ChunkUploadService();
             var data = new byte[100];
@@ -110,57 +110,57 @@ namespace LargeFileUpload.Tests.Controllers
             {
                 var hash = BitConverter.ToString(sha256.ComputeHash(data)).Replace("-", "").ToLower();
                 var result = service.UploadChunk("file2", 1, 2, hash, data, "test.zip");
-                Assert.True(result.Success);
-                Assert.Equal(1, result.ChunkIndex);
-                Assert.Equal("uploaded", result.Status);
+                Assert.IsTrue(result.Success);
+                Assert.AreEqual(1, result.ChunkIndex);
+                Assert.AreEqual("uploaded", result.Status);
             }
         }
 
-        [Fact]
-        public void UploadChunk_NonZipFile_ReturnsBadRequest()
+    [TestMethod]
+    public void UploadChunk_NonZipFile_ReturnsBadRequest()
         {
             var service = new ChunkUploadService();
             var result = service.UploadChunk("file1", 0, 1, string.Empty, new byte[1024 * 1024], "test.txt");
-            Assert.False(result.Success);
-            Assert.Equal("Only .zip files are allowed for upload.", result.Error);
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual("Only .zip files are allowed for upload.", result.Error);
         }
 
-        [Fact]
-        public void UploadChunk_ChunkTooLarge_ReturnsBadRequest()
+    [TestMethod]
+    public void UploadChunk_ChunkTooLarge_ReturnsBadRequest()
         {
             var service = new ChunkUploadService();
             var data = new byte[ChunkUploadConstants.MaxChunkSize + 1];
             var result = service.UploadChunk("file1", 0, 1, string.Empty, data, "test.zip");
-            Assert.False(result.Success);
-            Assert.Equal("Chunk size too large.", result.Error);
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual("Chunk size too large.", result.Error);
         }
 
-        [Fact]
-        public void UploadChunk_ChunkTooSmall_ReturnsBadRequest()
+    [TestMethod]
+    public void UploadChunk_ChunkTooSmall_ReturnsBadRequest()
         {
             var service = new ChunkUploadService();
             var data = new byte[ChunkUploadConstants.MinChunkSize - 1];
             var result = service.UploadChunk("file1", 0, 2, string.Empty, data, "test.zip");
-            Assert.False(result.Success);
-            Assert.Equal("Chunk size too small.", result.Error);
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual("Chunk size too small.", result.Error);
         }
 
-        [Fact]
-        public void UploadChunk_TooManyChunks_ReturnsBadRequest()
+    [TestMethod]
+    public void UploadChunk_TooManyChunks_ReturnsBadRequest()
         {
             var service = new ChunkUploadService();
             var result = service.UploadChunk("file1", 0, 1000001, string.Empty, new byte[1024 * 1024], "test.zip");
-            Assert.False(result.Success);
-            Assert.Equal("Too many chunks.", result.Error);
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual("Too many chunks.", result.Error);
         }
 
-        [Fact]
-        public void UploadChunk_ExceedsMaxFileSize_ReturnsBadRequest()
+    [TestMethod]
+    public void UploadChunk_ExceedsMaxFileSize_ReturnsBadRequest()
         {
             var service = new ChunkUploadService();
             var data = new byte[ChunkUploadConstants.MaxChunkSize];
             var result = service.UploadChunk("file1", 0, 1, "", data, "test.zip");
-            Assert.True(result.Success || !result.Success);
+            Assert.IsTrue(result.Success || !result.Success);
         }
     }
 }
