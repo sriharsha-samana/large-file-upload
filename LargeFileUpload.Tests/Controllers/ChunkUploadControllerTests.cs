@@ -1,12 +1,14 @@
 
 using LargeFileUpload.Core;
-using Xunit;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
 
 namespace LargeFileUpload.Tests.Controllers
 {
+    [TestClass]
     public class ChunkUploadControllerTests
     {
-        [Fact]
+        [TestMethod]
         public void UploadChunk_Exceeds100GBFile_ReturnsBadRequest()
         {
             var service = new ChunkUploadService();
@@ -25,12 +27,13 @@ namespace LargeFileUpload.Tests.Controllers
             }
             var data = new byte[ChunkUploadConstants.MinChunkSize];
             var result = service.UploadChunk(fileId, chunkCount, chunkCount + 1, "hash", data, "test.zip");
-            Assert.False(result.Success);
-            Assert.Equal("Chunk hash mismatch.", result.Error);
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual("Chunk hash mismatch.", result.Error);
             System.IO.Directory.Delete(fileDir, true);
         }
 
-        [Fact]
+
+        [TestMethod]
         public void UploadChunk_ValidatesTimingLogging()
         {
             var service = new ChunkUploadService();
@@ -39,26 +42,27 @@ namespace LargeFileUpload.Tests.Controllers
             {
                 var hash = BitConverter.ToString(sha256.ComputeHash(data)).Replace("-", "").ToLower();
                 var result = service.UploadChunk("timingtest", 0, 1, hash, data, "test.zip");
-                Assert.True(result.Success);
+                Assert.IsTrue(result.Success);
             }
         }
 
-        [Fact]
+
+        [TestMethod]
         public void UploadChunk_InvalidFileId_ReturnsBadRequest()
         {
             var service = new ChunkUploadService();
             var result = service.UploadChunk("", 0, 1, "", new byte[1024 * 1024], "test.zip");
-            Assert.False(result.Success);
-            Assert.Equal("Missing required fields.", result.Error);
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual("Missing required fields.", result.Error);
         }
 
-        [Fact]
+        [TestMethod]
         public void UploadChunk_FileIdTooLong_ReturnsBadRequest()
         {
             var service = new ChunkUploadService();
             var longId = new string('a', 129);
             var result = service.UploadChunk(longId, 0, 1, string.Empty, new byte[1024 * 1024], "test.zip");
-            Assert.False(result.Success);
+            Assert.IsFalse(result.Success);
             Assert.Equal("fileId or fileName too long.", result.Error);
         }
 
