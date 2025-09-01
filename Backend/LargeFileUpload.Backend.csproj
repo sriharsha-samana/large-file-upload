@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
-    <TargetFramework>net40</TargetFramework>
+    <TargetFramework>net45</TargetFramework>
     <RootNamespace>LargeFileUpload.Backend</RootNamespace>
     <AssemblyName>LargeFileUpload.Backend</AssemblyName>
     <OutputType>Library</OutputType>
