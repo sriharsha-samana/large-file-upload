@@ -22,6 +22,12 @@ jobs:
       - name: Restore NuGet packages
         run: nuget restore LargeFileUpload.sln
 
+      - name: Install .NET Framework 4.0 Developer Pack
+        run: |
+          Invoke-WebRequest -Uri "https://download.microsoft.com/download/1/5/7/157F2B0B-2C0B-4A2A-8A6C-6A6F6B6B6B6B/dotNetFx40_Full_x86_x64.exe" -OutFile dotNetFx40_Full_x86_x64.exe
+          Start-Process -FilePath .\dotNetFx40_Full_x86_x64.exe -ArgumentList '/q /norestart' -Wait
+        shell: pwsh
+
       - name: Build solution
         run: msbuild LargeFileUpload.sln /p:Configuration=Debug
 
