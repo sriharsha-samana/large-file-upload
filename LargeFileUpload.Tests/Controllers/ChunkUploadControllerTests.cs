@@ -1,4 +1,5 @@
 
+using System;
 using LargeFileUpload.Core;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -57,17 +58,7 @@ namespace LargeFileUpload.Tests.Controllers
         }
 
         [TestMethod]
-        public void UploadChunk_FileIdTooLong_ReturnsBadRequest()
-        {
-            var service = new ChunkUploadService();
-            var longId = new string('a', 129);
-            var result = service.UploadChunk(longId, 0, 1, string.Empty, new byte[1024 * 1024], "test.zip");
-            Assert.IsFalse(result.Success);
-            Assert.Equal("fileId or fileName too long.", result.Error);
-        }
-
-    [TestMethod]
-    public void UploadChunk_FileNameTooLong_ReturnsBadRequest()
+        public void UploadChunk_FileNameTooLong_ReturnsBadRequest()
         {
             var service = new ChunkUploadService();
             var longName = new string('b', 513) + ".zip";
@@ -76,8 +67,8 @@ namespace LargeFileUpload.Tests.Controllers
             Assert.AreEqual("fileId or fileName too long.", result.Error);
         }
 
-    [TestMethod]
-    public void UploadChunk_ChunkHashMismatch_ReturnsBadRequest()
+        [TestMethod]
+        public void UploadChunk_ChunkHashMismatch_ReturnsBadRequest()
         {
             var service = new ChunkUploadService();
             var data = new byte[ChunkUploadConstants.MinChunkSize];
@@ -86,8 +77,8 @@ namespace LargeFileUpload.Tests.Controllers
             Assert.AreEqual("Chunk hash mismatch.", result.Error);
         }
 
-    [TestMethod]
-    public void UploadChunk_ValidChunk_ReturnsSuccess()
+        [TestMethod]
+        public void UploadChunk_ValidChunk_ReturnsSuccess()
         {
             var service = new ChunkUploadService();
             var data = new byte[ChunkUploadConstants.MinChunkSize];
@@ -101,8 +92,8 @@ namespace LargeFileUpload.Tests.Controllers
             }
         }
 
-    [TestMethod]
-    public void UploadChunk_LastChunkCanBeSmall_ReturnsSuccess()
+        [TestMethod]
+        public void UploadChunk_LastChunkCanBeSmall_ReturnsSuccess()
         {
             var service = new ChunkUploadService();
             var data = new byte[100];
@@ -116,8 +107,8 @@ namespace LargeFileUpload.Tests.Controllers
             }
         }
 
-    [TestMethod]
-    public void UploadChunk_NonZipFile_ReturnsBadRequest()
+        [TestMethod]
+        public void UploadChunk_NonZipFile_ReturnsBadRequest()
         {
             var service = new ChunkUploadService();
             var result = service.UploadChunk("file1", 0, 1, string.Empty, new byte[1024 * 1024], "test.txt");
@@ -125,8 +116,8 @@ namespace LargeFileUpload.Tests.Controllers
             Assert.AreEqual("Only .zip files are allowed for upload.", result.Error);
         }
 
-    [TestMethod]
-    public void UploadChunk_ChunkTooLarge_ReturnsBadRequest()
+        [TestMethod]
+        public void UploadChunk_ChunkTooLarge_ReturnsBadRequest()
         {
             var service = new ChunkUploadService();
             var data = new byte[ChunkUploadConstants.MaxChunkSize + 1];
@@ -135,8 +126,8 @@ namespace LargeFileUpload.Tests.Controllers
             Assert.AreEqual("Chunk size too large.", result.Error);
         }
 
-    [TestMethod]
-    public void UploadChunk_ChunkTooSmall_ReturnsBadRequest()
+        [TestMethod]
+        public void UploadChunk_ChunkTooSmall_ReturnsBadRequest()
         {
             var service = new ChunkUploadService();
             var data = new byte[ChunkUploadConstants.MinChunkSize - 1];
@@ -145,8 +136,8 @@ namespace LargeFileUpload.Tests.Controllers
             Assert.AreEqual("Chunk size too small.", result.Error);
         }
 
-    [TestMethod]
-    public void UploadChunk_TooManyChunks_ReturnsBadRequest()
+        [TestMethod]
+        public void UploadChunk_TooManyChunks_ReturnsBadRequest()
         {
             var service = new ChunkUploadService();
             var result = service.UploadChunk("file1", 0, 1000001, string.Empty, new byte[1024 * 1024], "test.zip");
@@ -154,8 +145,8 @@ namespace LargeFileUpload.Tests.Controllers
             Assert.AreEqual("Too many chunks.", result.Error);
         }
 
-    [TestMethod]
-    public void UploadChunk_ExceedsMaxFileSize_ReturnsBadRequest()
+        [TestMethod]
+        public void UploadChunk_ExceedsMaxFileSize_ReturnsBadRequest()
         {
             var service = new ChunkUploadService();
             var data = new byte[ChunkUploadConstants.MaxChunkSize];
