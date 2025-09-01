@@ -50,4 +50,5 @@
     <Reference Include="Microsoft.AspNet.WebApi, Version=5.2.7.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" />
     <Reference Include="Microsoft.AspNet.WebApi.Core, Version=5.2.7.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" />
   </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
