@@ -378,10 +378,11 @@ function uploadFile(file) {
                 } catch (err) {
                     attempts++;
                     chunkStatus[i] = 'failed';
-                    setStatus(`Chunk ${i} failed (attempt ${attempts}): Upload failed.`, '', fileId);
+                    // Always use err.message, never err.stack
+                    setStatus(`Chunk ${i} failed (attempt ${attempts}): ${err && err.message ? err.message : 'Upload failed.'}`, '', fileId);
                     if (attempts >= MAX_RETRIES) {
                         failedChunks.push(i);
-                        console.error(`Chunk ${i} failed after ${MAX_RETRIES} attempts:`, err);
+                        console.error(`Chunk ${i} failed after ${MAX_RETRIES} attempts:`, err.message || err);
                         return null;
                     }
                     await new Promise(res => setTimeout(res, delay));
