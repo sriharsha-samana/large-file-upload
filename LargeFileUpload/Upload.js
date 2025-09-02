@@ -9,26 +9,86 @@ let isAborted = false;
 let throttleMs = 0;
 
 function addConfigControls() {
-	let configDiv = document.getElementById('uploadConfig');
-	if (!configDiv) {
-		configDiv = document.createElement('div');
-		configDiv.id = 'uploadConfig';
-		configDiv.innerHTML = `
-			<label>Chunk Size (MB): <input type="number" id="chunkSizeInput" value="${CHUNK_SIZE / (1024 * 1024)}" min="1" max="100" /></label>
-			<label>Concurrency: <input type="number" id="concurrencyInput" value="${CONCURRENCY}" min="1" max="10" /></label>
-			<label>Max Retries: <input type="number" id="maxRetriesInput" value="${MAX_RETRIES}" min="1" max="10" /></label>
-		`;
-		document.body.insertBefore(configDiv, document.body.firstChild);
-		document.getElementById('chunkSizeInput').addEventListener('change', e => {
-			CHUNK_SIZE = parseInt(e.target.value) * 1024 * 1024;
-		});
-		document.getElementById('concurrencyInput').addEventListener('change', e => {
-			CONCURRENCY = parseInt(e.target.value);
-		});
-		document.getElementById('maxRetriesInput').addEventListener('change', e => {
-			MAX_RETRIES = parseInt(e.target.value);
-		});
-	}
+    let uploaderCard = document.querySelector('.container');
+    if (!uploaderCard) {
+        uploaderCard = document.createElement('div');
+        uploaderCard.className = 'container';
+        uploaderCard.style.maxWidth = '600px';
+        uploaderCard.style.width = '100%';
+        uploaderCard.style.margin = '40px auto';
+        uploaderCard.style.boxShadow = '0 4px 24px rgba(0,0,0,0.08)';
+        uploaderCard.style.borderRadius = '16px';
+        uploaderCard.style.background = '#fff';
+        uploaderCard.style.padding = '2.5em 2em';
+        document.body.innerHTML = '';
+        document.body.appendChild(uploaderCard);
+    }
+    let configDiv = document.getElementById('uploadConfig');
+    if (!configDiv) {
+        configDiv = document.createElement('div');
+        configDiv.id = 'uploadConfig';
+        configDiv.style.display = 'flex';
+        configDiv.style.flexDirection = 'row';
+        configDiv.style.alignItems = 'center';
+        configDiv.style.justifyContent = 'center';
+        configDiv.style.gap = '2em';
+        configDiv.style.marginBottom = '1.5em';
+        configDiv.innerHTML = `
+            <div style="display:flex;flex-direction:column;align-items:flex-start;">
+                <label style="font-weight:500">Chunk Size (MB)<br>
+                    <input type="number" id="chunkSizeInput" value="${CHUNK_SIZE / (1024 * 1024)}" min="1" max="100" style="width:120px;padding:0.5em;border-radius:6px;border:1px solid #d0d7de;" />
+                </label>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-start;">
+                <label style="font-weight:500">Concurrency<br>
+                    <input type="number" id="concurrencyInput" value="${CONCURRENCY}" min="1" max="10" style="width:120px;padding:0.5em;border-radius:6px;border:1px solid #d0d7de;" />
+                </label>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-start;">
+                <label style="font-weight:500">Max Retries<br>
+                    <input type="number" id="maxRetriesInput" value="${MAX_RETRIES}" min="1" max="10" style="width:120px;padding:0.5em;border-radius:6px;border:1px solid #d0d7de;" />
+                </label>
+            </div>
+        `;
+        uploaderCard.appendChild(configDiv);
+        document.getElementById('chunkSizeInput').addEventListener('change', e => {
+            CHUNK_SIZE = parseInt(e.target.value) * 1024 * 1024;
+        });
+        document.getElementById('concurrencyInput').addEventListener('change', e => {
+            CONCURRENCY = parseInt(e.target.value);
+        });
+        document.getElementById('maxRetriesInput').addEventListener('change', e => {
+            MAX_RETRIES = parseInt(e.target.value);
+        });
+    }
+    let fileInput = document.getElementById('fileInput');
+    if (!fileInput) {
+        fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.id = 'fileInput';
+        fileInput.multiple = true;
+        fileInput.className = 'file-input';
+        fileInput.style.margin = '1.5em 0';
+        uploaderCard.appendChild(fileInput);
+    }
+    fileInput.disabled = false;
+    fileInput.value = '';
+    fileInput.onchange = function (e) {
+        let fileList = document.getElementById('fileList');
+        let errorDiv = document.getElementById('mainError');
+        if (e.target.files && e.target.files.length > 0) {
+            if (fileList) fileList.innerHTML = '';
+            if (errorDiv) {
+                errorDiv.textContent = '';
+                errorDiv.style.display = 'none';
+            }
+            const files = Array.from(e.target.files);
+            files.forEach(file => {
+                setStatus('Waiting...', undefined, file.name);
+                uploadFile(file);
+            });
+        }
+    };
 }
 
 function setProgress(percent, text, speed, eta, chunkStatus, fileId) {
@@ -38,15 +98,40 @@ function setProgress(percent, text, speed, eta, chunkStatus, fileId) {
         container.id = 'fileList';
         document.querySelector('.container').appendChild(container);
     }
+    let fileCard = document.getElementById('fileCard_' + fileId);
+    if (!fileCard) {
+        fileCard = document.createElement('div');
+        fileCard.id = 'fileCard_' + fileId;
+        fileCard.className = 'file-card';
+        fileCard.style.display = 'flex';
+        fileCard.style.flexDirection = 'column';
+        fileCard.style.gap = '0.5em';
+        fileCard.style.background = '#f6f8fa';
+        fileCard.style.borderRadius = '10px';
+        fileCard.style.padding = '1.2em 1em';
+        fileCard.style.marginBottom = '1.2em';
+        fileCard.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
+        container.appendChild(fileCard);
+    }
+    let nameLabel = document.getElementById('fileName_' + fileId);
+    if (!nameLabel) {
+        nameLabel = document.createElement('div');
+        nameLabel.id = 'fileName_' + fileId;
+        nameLabel.style.fontWeight = '600';
+        nameLabel.style.fontSize = '1.08em';
+        nameLabel.style.color = '#1976d2';
+        fileCard.appendChild(nameLabel);
+    }
+    nameLabel.textContent = fileId;
     let bar = document.getElementById('uploadProgress_' + fileId);
     if (!bar) {
         bar = document.createElement('progress');
         bar.id = 'uploadProgress_' + fileId;
         bar.max = 100;
         bar.style.width = '100%';
-        bar.style.height = '20px';
+        bar.style.height = '18px';
         bar.style.marginBottom = '0.5em';
-        container.appendChild(bar);
+        fileCard.appendChild(bar);
     }
     bar.value = percent;
     let label = document.getElementById('progressLabel_' + fileId);
@@ -56,42 +141,62 @@ function setProgress(percent, text, speed, eta, chunkStatus, fileId) {
         label.style.fontSize = '0.98em';
         label.style.color = '#555';
         label.style.marginBottom = '0.5em';
-        container.appendChild(label);
+        fileCard.appendChild(label);
     }
-    let details = text || '';
-    if (speed !== undefined && eta !== undefined) {
+    let details = `${percent.toFixed(1)}%`;
+    if (speed !== undefined && eta !== undefined && percent < 100) {
         details += ` | Speed: ${speed} MB/s | ETA: ${eta}s`;
     }
     label.textContent = details;
-    let chunkDiv = document.getElementById('chunkProgress_' + fileId);
-    if (!chunkDiv) {
-        chunkDiv = document.createElement('div');
-        chunkDiv.id = 'chunkProgress_' + fileId;
-        chunkDiv.style.marginBottom = '0.5em';
-        container.appendChild(chunkDiv);
+    let statusMsg = document.getElementById('fileStatus_' + fileId);
+    if (!statusMsg) {
+        statusMsg = document.createElement('div');
+        statusMsg.id = 'fileStatus_' + fileId;
+        statusMsg.style.fontSize = '0.98em';
+        statusMsg.style.fontWeight = '500';
+        statusMsg.style.marginBottom = '0.5em';
+        fileCard.appendChild(statusMsg);
     }
-    if (chunkStatus) {
-        chunkDiv.innerHTML = chunkStatus.map((s, i) => `<span style='color:${s==="uploaded"?"#388e3c":s==="failed"?"#d32f2f":"#aaa"};font-weight:600;margin-right:4px;'>${i+1}</span>`).join(' ');
+    if (percent === 100) {
+        statusMsg.textContent = 'Upload complete';
+        statusMsg.style.color = '#388e3c';
+    } else if (details.toLowerCase().includes('failed')) {
+        statusMsg.textContent = 'Upload failed';
+        statusMsg.style.color = '#d32f2f';
+    } else {
+        statusMsg.textContent = 'Uploading...';
+        statusMsg.style.color = '#1976d2';
     }
     const fileInput = document.getElementById('fileInput');
     if (fileInput) fileInput.disabled = percent < 100;
+
+    // Update pause and abort button states
+    let pauseBtn = document.getElementById('pauseBtn_' + fileId);
+    let abortBtn = document.getElementById('abortBtn_' + fileId);
+    if (pauseBtn) pauseBtn.disabled = percent === 100;
+    if (abortBtn) abortBtn.disabled = percent === 100;
 }
 
 function setStatus(text, errorDetails, fileId) {
-    let status = document.getElementById('mainStatus');
-    if (status) {
-        status.textContent = text || '';
-        status.style.color = text && text.toLowerCase().includes('failed') ? '#d32f2f' : '#1976d2';
+    let statusMsg = document.getElementById('fileStatus_' + fileId);
+    if (statusMsg) {
+        statusMsg.textContent = text || '';
+        statusMsg.style.color = text && text.toLowerCase().includes('failed') ? '#d32f2f' : '#1976d2';
     }
     let errorDiv = document.getElementById('mainError');
-    if (errorDiv) {
-        if (errorDetails) {
-            errorDiv.textContent = errorDetails;
-            errorDiv.style.display = '';
-        } else {
-            errorDiv.textContent = '';
-            errorDiv.style.display = 'none';
-        }
+    if (!errorDiv) {
+        errorDiv = document.createElement('div');
+        errorDiv.id = 'mainError';
+        errorDiv.className = 'error';
+        errorDiv.style.display = 'none';
+        document.querySelector('.container').appendChild(errorDiv);
+    }
+    if (errorDetails) {
+        errorDiv.textContent = errorDetails;
+        errorDiv.style.display = '';
+    } else {
+        errorDiv.textContent = '';
+        errorDiv.style.display = 'none';
     }
 }
 
