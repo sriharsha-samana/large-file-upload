@@ -91,7 +91,6 @@
 <body>
     <div class="container" style="max-width:700px;">
         <h2>Large File Upload</h2>
-        <div id="uploadConfig"></div>
         <input type="file" id="fileInput" class="file-input" multiple />
         <div class="file-list" id="fileList"></div>
         <div class="status" id="mainStatus"></div>
