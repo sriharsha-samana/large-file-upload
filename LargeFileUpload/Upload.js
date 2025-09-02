@@ -10,7 +10,9 @@ let throttleMs = 0;
 
 function addConfigControls() {
     let uploaderCard = document.querySelector('.container');
+    // Fix: Do not overwrite document.body, always use existing .container
     if (!uploaderCard) {
+        // If not found, fallback to body, but do NOT clear innerHTML
         uploaderCard = document.createElement('div');
         uploaderCard.className = 'container';
         uploaderCard.style.maxWidth = '600px';
@@ -20,7 +22,6 @@ function addConfigControls() {
         uploaderCard.style.borderRadius = '16px';
         uploaderCard.style.background = '#fff';
         uploaderCard.style.padding = '2.5em 2em';
-        document.body.innerHTML = '';
         document.body.appendChild(uploaderCard);
     }
     let configDiv = document.getElementById('uploadConfig');
@@ -50,7 +51,7 @@ function addConfigControls() {
                 </label>
             </div>
         `;
-        uploaderCard.appendChild(configDiv);
+        uploaderCard.insertBefore(configDiv, uploaderCard.firstChild.nextSibling);
         document.getElementById('chunkSizeInput').addEventListener('change', e => {
             CHUNK_SIZE = parseInt(e.target.value) * 1024 * 1024;
         });
