@@ -3,14 +3,10 @@
     if (fileState.isAborted) {
         setStatus('Upload aborted by user.', undefined, fileId);
     }
-// upload.aspx.js - Full-featured chunked upload for ASP.NET Web Forms (.ashx handler endpoints)
-// Adapted from upload_old.js
-
+// Large file upload client for ASP.NET Web Forms (.ashx handler endpoints)
 let CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
 let CONCURRENCY = 3;
 let MAX_RETRIES = 3;
-let isPaused = false;
-let isAborted = false;
 let throttleMs = 0;
 
 function addConfigControls() {
@@ -420,8 +416,9 @@ function uploadFile(file) {
                     completed++;
                     bytesUploaded += (end - start);
                     let elapsed = (Date.now() - startTime) / 1000;
-                    let speed = (bytesUploaded / 1024 / 1024 / elapsed).toFixed(2);
-                    let eta = ((file.size - bytesUploaded) / 1024 / 1024 / speed).toFixed(0);
+                    let speedNum = bytesUploaded / 1024 / 1024 / elapsed;
+                    let speed = speedNum.toFixed(2);
+                    let eta = speedNum > 0 ? ((file.size - bytesUploaded) / 1024 / 1024 / speedNum) : 0;
                     setProgress(Math.round((completed / totalChunks) * 100), `Chunk ${i + 1}/${totalChunks} uploaded`, speed, eta, chunkStatus, fileId, file.name);
                     localStorage.setItem('upload_' + fileId, JSON.stringify(chunkStatus.map((s, idx) => s === 'uploaded' ? idx : null).filter(x => x !== null)));
                     if (throttleMs > 0) await new Promise(res => setTimeout(res, throttleMs));

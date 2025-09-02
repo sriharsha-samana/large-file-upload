@@ -12,7 +12,7 @@
             background: #f7f8fa;
             margin: 0;
             padding: 0;
-        }
+    /* End of CSS */
         .container {
             max-width: 700px;
             margin: 3em auto;
@@ -43,20 +43,7 @@
             font-size: 0.98em;
             color: #555;
         }
-        .progress-bar {
-            width: 100%;
-            background: #eee;
-            border-radius: 8px;
-            margin: 0.5em 0;
-            height: 20px;
-            overflow: hidden;
-        }
-        .progress {
-            background: linear-gradient(90deg, #4caf50 60%, #81c784 100%);
-            height: 100%;
-            border-radius: 8px;
-            width: 0;
-            transition: width 0.2s;
+        /* Removed unused progress-bar and progress classes */
         }
         .error {
             color: #d32f2f;
@@ -73,7 +60,7 @@
     </style>
 </head>
 <body>
-    <div class="container" style="max-width:700px;">
+    <div class="container">
         <h2>Large File Upload</h2>
         <input type="file" id="fileInput" class="file-input" multiple />
         <div class="file-list" id="fileList"></div>
