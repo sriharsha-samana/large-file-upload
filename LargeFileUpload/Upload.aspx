@@ -91,12 +91,11 @@
 <body>
     <div class="container">
         <h2>Large File Upload</h2>
+        <div id="uploadConfig"></div>
         <input type="file" id="fileInput" class="file-input" multiple />
-        <button class="upload-btn" onclick="startUpload()">Upload</button>
+        <!-- Removed upload button, upload starts automatically -->
         <div class="file-list" id="fileList"></div>
-        <div class="progress-bar" id="mainProgressBar" style="display:none;">
-            <div class="progress" id="mainProgress"></div>
-        </div>
+        <!-- Per-file progress/status handled by JS -->
         <div class="status" id="mainStatus"></div>
         <div class="error" id="mainError" style="display:none;"></div>
     </div>
