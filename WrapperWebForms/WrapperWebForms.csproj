@@ -1,25 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <OutputPath>$(BaseOutputPath)Debug\</OutputPath>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <OutputPath>$(BaseOutputPath)Release\</OutputPath>
-  </PropertyGroup>
   <PropertyGroup>
-  <BaseOutputPath>bin\</BaseOutputPath>
-  <OutputPath>$(BaseOutputPath)</OutputPath>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-  <ProductVersion>10.0.20506</ProductVersion>
+    <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{D1A1B1C1-0000-4000-8000-000000000001}</ProjectGuid>
-  <!-- OutputType removed for web application -->
+    <ProjectTypeGuids>{349c5851-65df-11da-9384-00065b846f21};{fae04ec0-301f-11d3-bf4b-00c04f79efbc}</ProjectTypeGuids>
     <RootNamespace>WrapperWebForms</RootNamespace>
     <AssemblyName>WrapperWebForms</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <UseIISExpress>false</UseIISExpress>
+    <UseIISExpress>true</UseIISExpress>
+    <AutoAssignPort>true</AutoAssignPort>
+    <DevelopmentServerPort>0</DevelopmentServerPort>
+    <IISUrl>http://localhost:8080/</IISUrl>
+    <SaveServerSettingsInUserFile>false</SaveServerSettingsInUserFile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <OutputPath>bin\Debug\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>bin\Release\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
   <Reference Include="System" />
@@ -38,4 +40,5 @@
   <Compile Include="Handlers\ChunkUploadHandler.ashx.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(MSBuildBinPath)\Microsoft.WebApplication.targets" Condition="Exists('$(MSBuildBinPath)\Microsoft.WebApplication.targets')" />
 </Project>
