@@ -43,7 +43,7 @@
       <Name>LargeFileUpload.Core</Name>
     </ProjectReference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>..\packages\Newtonsoft.Json.13.0.1\lib\net40\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\net40\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Content Include="web.config" />
     <Content Include="Pages\Upload.aspx" />
