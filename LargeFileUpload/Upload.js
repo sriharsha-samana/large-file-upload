@@ -286,11 +286,13 @@ function uploadFile(file) {
         setProgress(0, '', undefined, undefined, [], fileId, file.name);
         // Show error status in file card for invalid extension or size
         if (!file.name.endsWith('.zip')) {
-            setStatus('Only .zip files are allowed!', undefined, fileId);
+            setStatus('Only .zip files are allowed!', '', fileId);
+            // Prevent further upload logic, but keep card
             return;
         }
         if (file.size > 100 * 1024 * 1024 * 1024) {
-            setStatus('File is too large!', undefined, fileId);
+            setStatus('File is too large!', '', fileId);
+            // Prevent further upload logic, but keep card
             return;
         }
         setStatus('Preparing upload...', undefined, fileId);
@@ -457,6 +459,10 @@ function uploadFile(file) {
         }
 
         runQueue();
+    }).catch(() => {
+        // If hashChunk fails, still show file card with error
+        setProgress(0, '', undefined, undefined, [], file.name, file.name);
+        setStatus('Could not process file!', '', file.name);
     });
 }
 
