@@ -15,10 +15,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="web.config" />
-    <Content Include="Pages\Upload.aspx" />
-    <Content Include="Scripts\Upload.aspx.js" />
-    <Content Include="Handlers\ChunkUploadHandler.ashx" />
-    <Compile Include="Handlers\ChunkUploadHandler.ashx.cs" />
+  <Content Include="Pages\Upload.aspx" />
+  <Content Include="Scripts\Upload.aspx.js" />
+  <Content Include="Handlers\ChunkUploadHandler.ashx" />
+  <Compile Include="Handlers\ChunkUploadHandler.ashx.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>
