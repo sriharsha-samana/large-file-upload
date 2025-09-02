@@ -231,16 +231,21 @@ function setProgress(percent, text, speed, eta, chunkStatus, fileId, fileName) {
 function setStatus(text, errorDetails, fileId) {
     let statusMsg = document.getElementById('fileStatus_' + fileId);
     if (statusMsg) {
-        statusMsg.textContent = text || '';
+        // Show only a crisp, user-friendly error message
         if (text && text.toLowerCase().includes('failed')) {
+            statusMsg.textContent = 'Upload failed.';
             statusMsg.style.color = '#d32f2f';
         } else if (text && text.toLowerCase().includes('aborted')) {
+            statusMsg.textContent = 'Upload aborted.';
             statusMsg.style.color = '#d32f2f';
         } else if (text && text.toLowerCase().includes('only .zip files are allowed')) {
+            statusMsg.textContent = 'Only .zip files are allowed.';
             statusMsg.style.color = '#d32f2f';
         } else if (text && text.toLowerCase().includes('file is too large')) {
+            statusMsg.textContent = 'File is too large.';
             statusMsg.style.color = '#d32f2f';
         } else {
+            statusMsg.textContent = text || '';
             statusMsg.style.color = '#1976d2';
         }
     }
@@ -252,14 +257,9 @@ function setStatus(text, errorDetails, fileId) {
         errorDiv.style.display = 'none';
         document.querySelector('.container').appendChild(errorDiv);
     }
-    // Only show crisp error message, not stack or details
-    if (errorDetails) {
-        errorDiv.textContent = typeof errorDetails === 'string' ? errorDetails.split('\n')[0] : '';
-        errorDiv.style.display = '';
-    } else {
-        errorDiv.textContent = '';
-        errorDiv.style.display = 'none';
-    }
+    // Hide technical error details from UI
+    errorDiv.textContent = '';
+    errorDiv.style.display = 'none';
 }
 
 async function hashChunk(chunkOrBuffer) {
