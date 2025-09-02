@@ -28,13 +28,15 @@
         }
         .file-input {
             display: block;
-            width: 100%;
-            padding: 0.75em;
+            width: 80%;
+            max-width: 400px;
+            margin: 2em auto 1.5em auto;
+            padding: 1em 1.5em;
             border: 1px solid #d0d7de;
-            border-radius: 8px;
+            border-radius: 10px;
             background: #f3f4f6;
-            font-size: 1.08em;
-            margin-bottom: 1.5em;
+            font-size: 1.12em;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
         .file-list {
             margin-top: 1em;

@@ -148,7 +148,7 @@ function setProgress(percent, text, speed, eta, chunkStatus, fileId, fileName) {
     }
     let details = `${percent.toFixed(1)}%`;
     if (speed !== undefined && eta !== undefined && percent < 100) {
-        details += ` | Speed: ${speed} MB/s | ETA: ${eta}s`;
+        details += ` | Speed: ${speed} MB/s | Remaining Time: ${eta}s`;
     }
     label.textContent = details;
     let statusMsg = document.getElementById('fileStatus_' + fileId);
@@ -160,7 +160,12 @@ function setProgress(percent, text, speed, eta, chunkStatus, fileId, fileName) {
         statusMsg.style.marginBottom = '0.5em';
         fileCard.appendChild(statusMsg);
     }
-    if (percent === 100) {
+    // Declare fileState once and reuse
+    const fileState = (window.fileUploadStates && window.fileUploadStates[fileId]) || {};
+    if (fileState.isAborted) {
+        statusMsg.textContent = 'Upload aborted by user.';
+        statusMsg.style.color = '#d32f2f';
+    } else if (percent === 100) {
         statusMsg.textContent = 'Upload complete';
         statusMsg.style.color = '#388e3c';
     } else if (details.toLowerCase().includes('failed')) {
@@ -225,8 +230,7 @@ function setProgress(percent, text, speed, eta, chunkStatus, fileId, fileName) {
     // Update button states
     let pauseBtn = document.getElementById('pauseBtn_' + fileId);
     let abortBtn = document.getElementById('abortBtn_' + fileId);
-    // Update disabled state and style for pause/resume button
-    const fileState = (window.fileUploadStates && window.fileUploadStates[fileId]) || {};
+    // Use fileState from above
     if (pauseBtn) {
         if (percent === 100) {
             pauseBtn.style.display = 'none';
