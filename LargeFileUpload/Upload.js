@@ -265,6 +265,8 @@ async function hashChunk(chunkOrBuffer) {
         buffer = await chunkOrBuffer.arrayBuffer();
     } else if (chunkOrBuffer && chunkOrBuffer.buffer instanceof ArrayBuffer) {
         buffer = chunkOrBuffer.buffer;
+    } else if (chunkOrBuffer instanceof Uint8Array) {
+        buffer = chunkOrBuffer.buffer;
     } else {
         throw new Error('Invalid chunk type for hashing');
     }
@@ -274,7 +276,8 @@ async function hashChunk(chunkOrBuffer) {
 
 function uploadFile(file) {
     addConfigControls();
-    hashChunk(file.slice(0, CHUNK_SIZE).arrayBuffer()).then(async fileId => {
+    // Always pass a Blob to hashChunk for the first chunk
+    hashChunk(file.slice(0, CHUNK_SIZE)).then(async fileId => {
         setProgress(0, '', undefined, undefined, [], fileId, file.name);
         if (!file.name.endsWith('.zip')) {
             setStatus('Only .zip files are allowed!', undefined, fileId);
