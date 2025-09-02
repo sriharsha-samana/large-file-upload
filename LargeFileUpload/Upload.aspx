@@ -14,7 +14,7 @@
             padding: 0;
         }
         .container {
-            max-width: 520px;
+            max-width: 700px;
             margin: 3em auto;
             background: #fff;
             border-radius: 16px;
@@ -89,13 +89,11 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container" style="max-width:700px;">
         <h2>Large File Upload</h2>
         <div id="uploadConfig"></div>
         <input type="file" id="fileInput" class="file-input" multiple />
-        <!-- Removed upload button, upload starts automatically -->
         <div class="file-list" id="fileList"></div>
-        <!-- Per-file progress/status handled by JS -->
         <div class="status" id="mainStatus"></div>
         <div class="error" id="mainError" style="display:none;"></div>
     </div>
