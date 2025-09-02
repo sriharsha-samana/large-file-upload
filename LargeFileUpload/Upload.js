@@ -220,8 +220,46 @@ function setProgress(percent, text, speed, eta, chunkStatus, fileId, fileName) {
     // Update button states
     let pauseBtn = document.getElementById('pauseBtn_' + fileId);
     let abortBtn = document.getElementById('abortBtn_' + fileId);
-    if (pauseBtn) pauseBtn.disabled = percent === 100;
-    if (abortBtn) abortBtn.disabled = percent === 100;
+    // Update disabled state and style for pause/resume button
+    const fileState = (window.fileUploadStates && window.fileUploadStates[fileId]) || {};
+    if (pauseBtn) {
+        if (percent === 100) {
+            pauseBtn.style.display = 'none';
+        } else if (fileState.isAborted) {
+            pauseBtn.style.display = '';
+            pauseBtn.disabled = true;
+            pauseBtn.style.background = '#e0e0e0';
+            pauseBtn.style.color = '#aaa';
+            pauseBtn.style.cursor = 'not-allowed';
+            pauseBtn.style.opacity = '0.7';
+        } else {
+            pauseBtn.style.display = '';
+            pauseBtn.disabled = false;
+            pauseBtn.style.background = '#1976d2';
+            pauseBtn.style.color = '#fff';
+            pauseBtn.style.cursor = 'pointer';
+            pauseBtn.style.opacity = '1';
+        }
+    }
+    if (abortBtn) {
+        if (percent === 100) {
+            abortBtn.style.display = 'none';
+        } else {
+            abortBtn.style.display = '';
+            abortBtn.disabled = !!fileState.isAborted;
+            if (fileState.isAborted) {
+                abortBtn.style.background = '#e0e0e0';
+                abortBtn.style.color = '#aaa';
+                abortBtn.style.cursor = 'not-allowed';
+                abortBtn.style.opacity = '0.7';
+            } else {
+                abortBtn.style.background = '#d32f2f';
+                abortBtn.style.color = '#fff';
+                abortBtn.style.cursor = 'pointer';
+                abortBtn.style.opacity = '1';
+            }
+        }
+    }
     const fileInput = document.getElementById('fileInput');
     if (fileInput) fileInput.disabled = percent < 100;
 }
@@ -445,9 +483,21 @@ function uploadFile(file) {
             const controlsDiv = document.getElementById('fileControls_' + fileId);
             if (controlsDiv) {
                 const pauseBtn = document.getElementById('pauseBtn_' + fileId);
-                if (pauseBtn) pauseBtn.disabled = true;
+                if (pauseBtn) {
+                    pauseBtn.disabled = true;
+                    pauseBtn.style.background = '#e0e0e0';
+                    pauseBtn.style.color = '#aaa';
+                    pauseBtn.style.cursor = 'not-allowed';
+                    pauseBtn.style.opacity = '0.7';
+                }
                 const abortBtn = document.getElementById('abortBtn_' + fileId);
-                if (abortBtn) abortBtn.disabled = true;
+                if (abortBtn) {
+                    abortBtn.disabled = true;
+                    abortBtn.style.background = '#e0e0e0';
+                    abortBtn.style.color = '#aaa';
+                    abortBtn.style.cursor = 'not-allowed';
+                    abortBtn.style.opacity = '0.7';
+                }
             }
         }
         runQueue();
