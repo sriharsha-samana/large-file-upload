@@ -263,6 +263,8 @@ async function hashChunk(chunkOrBuffer) {
         buffer = chunkOrBuffer;
     } else if (chunkOrBuffer instanceof Blob) {
         buffer = await chunkOrBuffer.arrayBuffer();
+    } else if (chunkOrBuffer && chunkOrBuffer.buffer instanceof ArrayBuffer) {
+        buffer = chunkOrBuffer.buffer;
     } else {
         throw new Error('Invalid chunk type for hashing');
     }
