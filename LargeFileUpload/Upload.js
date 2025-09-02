@@ -65,7 +65,6 @@ function addConfigControls() {
         document.getElementById('maxRetriesInput').addEventListener('change', e => {
             MAX_RETRIES = parseInt(e.target.value);
         });
-        console.log('Upload controls rendered: chunk size, concurrency, max retries');
     }
     let fileInput = document.getElementById('fileInput');
     if (!fileInput) {
@@ -81,12 +80,7 @@ function addConfigControls() {
     fileInput.value = '';
     fileInput.onchange = function (e) {
         let fileList = document.getElementById('fileList');
-        let errorDiv = document.getElementById('mainError');
-        // Remove fileList.innerHTML = '' to preserve all file cards
-        if (errorDiv) {
-            errorDiv.textContent = '';
-            errorDiv.style.display = 'none';
-        }
+        fileList.innerHTML = ''
         const files = Array.from(e.target.files);
         files.forEach(file => {
             setStatus('Waiting...', undefined, file.name);
@@ -256,12 +250,6 @@ function setStatus(text, errorDetails, fileId) {
             statusMsg.style.color = '#1976d2';
         }
     }
-    // Hide technical error details from UI
-    let errorDiv = document.getElementById('mainError');
-    if (errorDiv) {
-        errorDiv.textContent = '';
-        errorDiv.style.display = 'none';
-    }
 }
 
 async function hashChunk(chunkOrBuffer) {
@@ -282,7 +270,6 @@ async function hashChunk(chunkOrBuffer) {
 }
 
 function uploadFile(file) {
-    addConfigControls();
     (async () => {
         let fileId;
         try {
@@ -447,7 +434,7 @@ function uploadFile(file) {
                     setStatus('File uploaded, but could not verify integrity.', undefined, fileId);
                 }
             } catch (e) {
-                setStatus('File uploaded, but verification failed.', '', fileId);
+                setStatus('File uploaded, but verification failed.', e?.message || '', fileId);
             }
             cleanupUI(fileId);
             localStorage.removeItem('upload_' + fileId);
@@ -467,15 +454,5 @@ function uploadFile(file) {
     })();
 }
 
-function startUpload() {
-	const fileInput = document.getElementById('fileInput');
-	const files = Array.from(fileInput.files);
-	Promise.all(files.map(file => uploadFile(file)));
-}
-
-document.getElementById('fileInput').addEventListener('change', function (e) {
-	const files = Array.from(e.target.files);
-	Promise.all(files.map(file => uploadFile(file)));
-});
 // Ensure controls are rendered on page load
 window.addEventListener('DOMContentLoaded', addConfigControls);

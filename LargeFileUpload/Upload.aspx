@@ -36,24 +36,6 @@
             font-size: 1.08em;
             margin-bottom: 1.5em;
         }
-        .upload-btn {
-            padding: 0.7em 2em;
-            border-radius: 8px;
-            border: none;
-            font-weight: 600;
-            font-size: 1.08em;
-            cursor: pointer;
-            background: #1976d2;
-            color: #fff;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-            transition: background 0.2s, color 0.2s, opacity 0.2s;
-        }
-        .upload-btn:disabled {
-            background: #e0e0e0 !important;
-            color: #aaa !important;
-            cursor: not-allowed !important;
-            opacity: 0.7;
-        }
         .file-list {
             margin-top: 1em;
             font-size: 0.98em;
@@ -93,8 +75,6 @@
         <h2>Large File Upload</h2>
         <input type="file" id="fileInput" class="file-input" multiple />
         <div class="file-list" id="fileList"></div>
-        <div class="status" id="mainStatus"></div>
-        <div class="error" id="mainError" style="display:none;"></div>
     </div>
     <script src="Upload.js"></script>
 </body>
