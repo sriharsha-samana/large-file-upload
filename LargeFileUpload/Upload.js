@@ -282,17 +282,21 @@ async function hashChunk(chunkOrBuffer) {
 function uploadFile(file) {
     addConfigControls();
     // Always show file card and status, even for validation errors
-    hashChunk(file.slice(0, CHUNK_SIZE)).then(async fileId => {
+    (async () => {
+        let fileId;
+        try {
+            fileId = await hashChunk(file.slice(0, CHUNK_SIZE));
+        } catch {
+            fileId = file.name;
+        }
         setProgress(0, '', undefined, undefined, [], fileId, file.name);
         // Show error status in file card for invalid extension or size
         if (!file.name.endsWith('.zip')) {
             setStatus('Only .zip files are allowed!', '', fileId);
-            // Prevent further upload logic, but keep card
             return;
         }
         if (file.size > 100 * 1024 * 1024 * 1024) {
             setStatus('File is too large!', '', fileId);
-            // Prevent further upload logic, but keep card
             return;
         }
         setStatus('Preparing upload...', undefined, fileId);
@@ -459,11 +463,7 @@ function uploadFile(file) {
         }
 
         runQueue();
-    }).catch(() => {
-        // If hashChunk fails, still show file card with error
-        setProgress(0, '', undefined, undefined, [], file.name, file.name);
-        setStatus('Could not process file!', '', file.name);
-    });
+    })();
 }
 
 function startUpload() {
