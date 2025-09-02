@@ -1,4 +1,4 @@
-// upload.aspx.js - Full-featured chunked upload for ASP.NET Web Forms (.ashx handler endpoints)
+﻿// upload.aspx.js - Full-featured chunked upload for ASP.NET Web Forms (.ashx handler endpoints)
 // Adapted from upload_old.js
 
 let CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
@@ -65,7 +65,7 @@ function setProgress(percent, text, speed, eta, chunkStatus, fileId) {
 		container.appendChild(chunkDiv);
 	}
 	if (chunkStatus) {
-		chunkDiv.innerHTML = chunkStatus.map((s, i) => `<span style='color:${s==="uploaded"?"green":s==="failed"?"red":"gray"}'>${i+1}</span>`).join(' ');
+		chunkDiv.innerHTML = chunkStatus.map((s, i) => `<span style='color:${s === "uploaded" ? "green" : s === "failed" ? "red" : "gray"}'>${i + 1}</span>`).join(' ');
 	}
 	const fileInput = document.getElementById('fileInput');
 	if (fileInput) fileInput.disabled = percent < 100;
@@ -79,7 +79,7 @@ function addAbortButton() {
 		btn.textContent = 'Abort';
 		document.body.appendChild(btn);
 	}
-	btn.onclick = function() {
+	btn.onclick = function () {
 		isAborted = true;
 		setStatus('Upload aborted by user.');
 		const fileInput = document.getElementById('fileInput');
@@ -124,7 +124,7 @@ function addPauseResumeButton(uploadFn) {
 		btn.textContent = 'Pause';
 		document.body.appendChild(btn);
 	}
-	btn.onclick = function() {
+	btn.onclick = function () {
 		isPaused = !isPaused;
 		btn.textContent = isPaused ? 'Resume' : 'Pause';
 		if (!isPaused) uploadFn();
@@ -158,12 +158,12 @@ async function uploadFile(file) {
 		try {
 			let arr = JSON.parse(persisted);
 			if (Array.isArray(arr)) uploadedChunks = new Set(arr);
-		} catch {}
+		} catch { }
 	}
 
 	// Fetch uploaded chunks from .ashx handler for resumable support
 	try {
-		const resp = await fetch(`Handlers/ChunkUploadHandler.ashx?action=chunks&fileId=${encodeURIComponent(fileId)}`);
+		const resp = await fetch(`/FileUploadHandler.ashx?action=chunks&fileId=${encodeURIComponent(fileId)}`);
 		if (resp.ok) {
 			const arr = await resp.json();
 			if (Array.isArray(arr)) {
@@ -217,7 +217,7 @@ async function uploadFile(file) {
 				formData.append('chunkHash', chunkHash);
 				formData.append('fileName', file.name);
 				formData.append('chunk', new Blob([chunk]));
-				const response = await fetch('Handlers/ChunkUploadHandler.ashx?action=upload', {
+				const response = await fetch('/FileUploadHandler.ashx?action=upload', {
 					method: 'POST',
 					body: formData
 				});
@@ -288,7 +288,7 @@ async function uploadFile(file) {
 		setProgress(100, 'Upload complete!', undefined, undefined, chunkStatus, fileId);
 		setStatus('Upload complete! Verifying file...', undefined, fileId);
 		try {
-			const resp = await fetch(`Handlers/ChunkUploadHandler.ashx?action=verify&fileId=${encodeURIComponent(fileId)}`);
+			const resp = await fetch(`/FileUploadHandler.ashx?action=verify&fileId=${encodeURIComponent(fileId)}`);
 			if (resp.ok) {
 				const { hash: serverHash } = await resp.json();
 				const clientHash = await hashChunk(await file.arrayBuffer());
@@ -325,7 +325,7 @@ function startUpload() {
 	Promise.all(files.map(file => uploadFile(file)));
 }
 
-document.getElementById('fileInput').addEventListener('change', function(e) {
+document.getElementById('fileInput').addEventListener('change', function (e) {
 	const files = Array.from(e.target.files);
 	Promise.all(files.map(file => uploadFile(file)));
 });

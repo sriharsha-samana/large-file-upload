@@ -1,6 +1,8 @@
-<%@ Page Language="C#" AutoEventWireup="true" CodeFile="Upload.aspx.cs" Inherits="WrapperWebForms.Pages.Upload" %>
+﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="Upload.aspx.cs" Inherits="LargeFileUpload.WebForm1" %>
+
 <!DOCTYPE html>
-<html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <title>Large File Upload (ASP.NET Web Forms)</title>
     <meta charset="utf-8" />
@@ -17,6 +19,6 @@
     <input type="file" id="fileInput" multiple />
     <button onclick="startUpload()">Upload</button>
     <div class="file-list" id="fileList"></div>
-    <script src="/Scripts/Upload.aspx.js"></script>
+    <script src="Upload.js"></script>
 </body>
 </html>

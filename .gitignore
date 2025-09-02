@@ -55,3 +55,5 @@ nunit-*.xml
 
 .DS_Store
 .vs/
+packages/
+App_Data/

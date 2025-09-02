@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using System.Web;
 using LargeFileUpload.Core;
 using Newtonsoft.Json;
 
-namespace WrapperWebForms.Handlers
+namespace LargeFileUpload.FileUploadHandler
 {
     public class ChunkUploadHandler : IHttpHandler
     {
