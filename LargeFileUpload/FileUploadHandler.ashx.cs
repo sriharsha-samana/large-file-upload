@@ -9,8 +9,10 @@ namespace LargeFileUpload.FileUploadHandler
     {
         public void ProcessRequest(HttpContext context)
         {
-            // Example: handle POST for chunk upload
-            if (context.Request.HttpMethod == "POST")
+            string action = context.Request["action"] ?? context.Request.QueryString["action"];
+            var service = new ChunkUploadService();
+            context.Response.ContentType = "application/json";
+            if (string.Equals(action, "upload", StringComparison.OrdinalIgnoreCase) && context.Request.HttpMethod == "POST")
             {
                 string fileId = context.Request.Form["fileId"];
                 int chunkIndex = int.TryParse(context.Request.Form["chunkIndex"], out var idx) ? idx : -1;
@@ -35,9 +37,19 @@ namespace LargeFileUpload.FileUploadHandler
                         chunkData = ms.ToArray();
                     }
                 }
-                var service = new ChunkUploadService();
                 var result = service.UploadChunk(fileId, chunkIndex, totalChunks, chunkHash, chunkData, fileName);
-                context.Response.ContentType = "application/json";
+                context.Response.Write(Newtonsoft.Json.JsonConvert.SerializeObject(result));
+            }
+            else if (string.Equals(action, "verify", StringComparison.OrdinalIgnoreCase) && (context.Request.HttpMethod == "GET" || context.Request.HttpMethod == "POST"))
+            {
+                string fileId = context.Request["fileId"] ?? context.Request.QueryString["fileId"];
+                var result = service.VerifyFile(fileId); // Implement this method in your service
+                context.Response.Write(Newtonsoft.Json.JsonConvert.SerializeObject(result));
+            }
+            else if (string.Equals(action, "chunks", StringComparison.OrdinalIgnoreCase) && context.Request.HttpMethod == "GET")
+            {
+                string fileId = context.Request["fileId"] ?? context.Request.QueryString["fileId"];
+                var result = service.GetUploadedChunks(fileId); // Implement this method in your service
                 context.Response.Write(Newtonsoft.Json.JsonConvert.SerializeObject(result));
             }
             else

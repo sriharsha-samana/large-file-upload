@@ -2,8 +2,6 @@ using System;
 using System.IO;
 using System.IO.Compression;
 using System.Security.Cryptography;
-using LargeFileUpload.Core;
-
 namespace LargeFileUpload.Core
 {
 	public class ChunkUploadService
@@ -37,42 +35,26 @@ namespace LargeFileUpload.Core
 				return ErrorResult("Chunk hash mismatch.");
 
 			var fileDir = Path.Combine(ChunkUploadConstants.UploadRoot, fileId);
-			try
-			{
-				Directory.CreateDirectory(fileDir);
-			}
-			catch (Exception ex)
-			{
-				return ErrorResult($"Error creating upload directory: {ex.Message}");
-			}
+			try { Directory.CreateDirectory(fileDir); }
+			catch (Exception ex) { return ErrorResult($"Error creating upload directory: {ex.Message}"); }
+
 			var chunkPath = Path.Combine(fileDir, $"chunk_{chunkIndex:D6}.gz");
 			var tempPath = chunkPath + ".tmp";
 			try
 			{
 				using (var fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
+				using (var gzip = new GZipStream(fs, CompressionMode.Compress))
 				{
-					using (var gzip = new GZipStream(fs, CompressionMode.Compress))
-					{
-						gzip.Write(chunkData, 0, chunkData.Length);
-					}
+					gzip.Write(chunkData, 0, chunkData.Length);
 				}
 				if (File.Exists(chunkPath)) File.Delete(chunkPath);
 				File.Move(tempPath, chunkPath);
 			}
-			catch (Exception ex)
-			{
-				return ErrorResult($"Error saving chunk: {ex.Message}");
-			}
+			catch (Exception ex) { return ErrorResult($"Error saving chunk: {ex.Message}"); }
 
 			string[] chunkFiles;
-			try
-			{
-				chunkFiles = Directory.GetFiles(fileDir, "chunk_*.gz");
-			}
-			catch (Exception ex)
-			{
-				return ErrorResult($"Error listing chunk files: {ex.Message}");
-			}
+			try { chunkFiles = Directory.GetFiles(fileDir, "chunk_*.gz"); }
+			catch (Exception ex) { return ErrorResult($"Error listing chunk files: {ex.Message}"); }
 
 			if (chunkFiles.Length == totalChunks)
 			{
@@ -115,23 +97,19 @@ namespace LargeFileUpload.Core
 							return false;
 						}
 					}
-
-					// Optionally: parallelize reading chunks for very large files (advanced)
 					for (int i = 0; i < totalChunks; i++)
 					{
 						var path = Path.Combine(fileDir, $"chunk_{i:D6}.gz");
 						try
 						{
 							using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+							using (var gzip = new GZipStream(fs, CompressionMode.Decompress))
 							{
-								using (var gzip = new GZipStream(fs, CompressionMode.Decompress))
+								byte[] buffer = new byte[BufferSize];
+								int read;
+								while ((read = gzip.Read(buffer, 0, buffer.Length)) > 0)
 								{
-									byte[] buffer = new byte[BufferSize];
-									int read;
-									while ((read = gzip.Read(buffer, 0, buffer.Length)) > 0)
-									{
-										output.Write(buffer, 0, read);
-									}
+									output.Write(buffer, 0, read);
 								}
 							}
 						}
@@ -157,6 +135,35 @@ namespace LargeFileUpload.Core
 				return false;
 			}
 			return true;
+		}
+
+		// Returns array of uploaded chunk indices for resumable support
+		public int[] GetUploadedChunks(string fileId)
+		{
+			var fileDir = Path.Combine(ChunkUploadConstants.UploadRoot, fileId);
+			if (!Directory.Exists(fileDir)) return new int[0];
+			var files = Directory.GetFiles(fileDir, "chunk_*.gz");
+			var indices = new System.Collections.Generic.List<int>();
+			foreach (var f in files)
+			{
+				var name = Path.GetFileNameWithoutExtension(f);
+				if (name.StartsWith("chunk_") && int.TryParse(name.Substring(6), out int idx))
+					indices.Add(idx);
+			}
+			return indices.ToArray();
+		}
+
+		// Verifies the reassembled file's hash (simple implementation)
+		public object VerifyFile(string fileId)
+		{
+			var finalPath = Path.Combine(ChunkUploadConstants.UploadRoot, fileId + ".complete");
+			if (!File.Exists(finalPath)) return new { success = false, error = "File not found" };
+			using (var sha256 = SHA256.Create())
+			using (var fs = File.OpenRead(finalPath))
+			{
+				var hash = BitConverter.ToString(sha256.ComputeHash(fs)).Replace("-", "").ToLower();
+				return new { success = true, hash };
+			}
 		}
 	}
 }
