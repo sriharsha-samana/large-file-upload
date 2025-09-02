@@ -76,18 +76,16 @@ function addConfigControls() {
     fileInput.onchange = function (e) {
         let fileList = document.getElementById('fileList');
         let errorDiv = document.getElementById('mainError');
-        if (e.target.files && e.target.files.length > 0) {
-            if (fileList) fileList.innerHTML = '';
-            if (errorDiv) {
-                errorDiv.textContent = '';
-                errorDiv.style.display = 'none';
-            }
-            const files = Array.from(e.target.files);
-            files.forEach(file => {
-                setStatus('Waiting...', undefined, file.name);
-                uploadFile(file);
-            });
+        // Remove fileList.innerHTML = '' to preserve all file cards
+        if (errorDiv) {
+            errorDiv.textContent = '';
+            errorDiv.style.display = 'none';
         }
+        const files = Array.from(e.target.files);
+        files.forEach(file => {
+            setStatus('Waiting...', undefined, file.name);
+            uploadFile(file);
+        });
     };
 }
 
@@ -233,7 +231,10 @@ function setStatus(text, errorDetails, fileId) {
     if (statusMsg) {
         // Show only a crisp, user-friendly error message
         if (text && text.toLowerCase().includes('failed')) {
-            statusMsg.textContent = 'Upload failed.';
+            let reason = 'Upload failed.';
+            const match = text.match(/Chunk \d+ failed: ([^\n]+)/);
+            if (match && match[1]) reason = `Upload failed: ${match[1]}`;
+            statusMsg.textContent = reason;
             statusMsg.style.color = '#d32f2f';
         } else if (text && text.toLowerCase().includes('aborted')) {
             statusMsg.textContent = 'Upload aborted.';
@@ -249,17 +250,12 @@ function setStatus(text, errorDetails, fileId) {
             statusMsg.style.color = '#1976d2';
         }
     }
-    let errorDiv = document.getElementById('mainError');
-    if (!errorDiv) {
-        errorDiv = document.createElement('div');
-        errorDiv.id = 'mainError';
-        errorDiv.className = 'error';
-        errorDiv.style.display = 'none';
-        document.querySelector('.container').appendChild(errorDiv);
-    }
     // Hide technical error details from UI
-    errorDiv.textContent = '';
-    errorDiv.style.display = 'none';
+    let errorDiv = document.getElementById('mainError');
+    if (errorDiv) {
+        errorDiv.textContent = '';
+        errorDiv.style.display = 'none';
+    }
 }
 
 async function hashChunk(chunkOrBuffer) {
@@ -281,7 +277,6 @@ async function hashChunk(chunkOrBuffer) {
 
 function uploadFile(file) {
     addConfigControls();
-    // Always show file card and status, even for validation errors
     (async () => {
         let fileId;
         try {
@@ -290,6 +285,9 @@ function uploadFile(file) {
             fileId = file.name;
         }
         setProgress(0, '', undefined, undefined, [], fileId, file.name);
+        // Per-file state
+        window.fileUploadStates = window.fileUploadStates || {};
+        window.fileUploadStates[fileId] = { isPaused: false, isAborted: false };
         // Show error status in file card for invalid extension or size
         if (!file.name.endsWith('.zip')) {
             setStatus('Only .zip files are allowed!', '', fileId);
@@ -300,7 +298,6 @@ function uploadFile(file) {
             return;
         }
         setStatus('Preparing upload...', undefined, fileId);
-        isAborted = false;
         const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
         let uploadedChunks = new Set();
         let persisted = localStorage.getItem('upload_' + fileId);
@@ -310,7 +307,6 @@ function uploadFile(file) {
                 if (Array.isArray(arr)) uploadedChunks = new Set(arr);
             } catch { }
         }
-        // Fetch uploaded chunks from .ashx handler for resumable support
         try {
             const resp = await fetch(`/FileUploadHandler.ashx?action=chunks&fileId=${encodeURIComponent(fileId)}`);
             if (resp.ok) {
@@ -322,29 +318,27 @@ function uploadFile(file) {
         } catch (e) {
             setStatus('Could not check uploaded chunks. Starting from scratch.', (e && e.message) ? e.message.split('\n')[0] : '', fileId);
         }
-
         let queue = [];
         for (let i = 0; i < totalChunks; i++) {
             if (!uploadedChunks.has(i)) queue.push(i);
         }
-
         let completed = uploadedChunks.size;
         let failedChunks = [];
         let chunkStatus = Array(totalChunks).fill('pending');
         for (let idx of uploadedChunks) chunkStatus[idx] = 'uploaded';
         let startTime = Date.now();
         let bytesUploaded = completed * CHUNK_SIZE;
-
         async function uploadChunk(i) {
             let attempts = 0;
             let delay = 1000;
             while (attempts < MAX_RETRIES) {
-                if (isAborted) throw new Error('Upload aborted');
-                if (isPaused) {
+                const state = window.fileUploadStates[fileId];
+                if (state.isAborted) throw new Error('Upload aborted');
+                if (state.isPaused) {
                     setStatus('Upload paused.', undefined, fileId);
                     await new Promise(res => {
                         let interval = setInterval(() => {
-                            if (!isPaused) {
+                            if (!state.isPaused) {
                                 clearInterval(interval);
                                 res();
                             }
@@ -384,7 +378,7 @@ function uploadFile(file) {
                 } catch (err) {
                     attempts++;
                     chunkStatus[i] = 'failed';
-                    setStatus(`Chunk ${i} failed (attempt ${attempts}): ${err.message}`, err.stack, fileId);
+                    setStatus(`Chunk ${i} failed (attempt ${attempts}): Upload failed.`, '', fileId);
                     if (attempts >= MAX_RETRIES) {
                         failedChunks.push(i);
                         console.error(`Chunk ${i} failed after ${MAX_RETRIES} attempts:`, err);
@@ -395,13 +389,12 @@ function uploadFile(file) {
                 }
             }
         }
-
         async function runQueue() {
             let running = new Set();
             let next = () => queue.length > 0 ? queue.shift() : null;
             let retryCount = 0;
             let maxTotalRetries = 2;
-            while ((queue.length > 0 || running.size > 0) && !isAborted) {
+            while ((queue.length > 0 || running.size > 0) && !window.fileUploadStates[fileId].isAborted) {
                 while (running.size < CONCURRENCY && queue.length > 0) {
                     const i = next();
                     if (i !== null) {
@@ -411,7 +404,7 @@ function uploadFile(file) {
                 }
                 if (running.size > 0) await Promise.race(Array.from(running));
             }
-            if (isAborted) {
+            if (window.fileUploadStates[fileId].isAborted) {
                 setStatus('Upload aborted.', undefined, fileId);
                 cleanupUI(fileId);
                 return;
@@ -426,7 +419,7 @@ function uploadFile(file) {
                     return;
                 } else {
                     setStatus(`Upload failed. The following chunks could not be uploaded after all retries: ${failedChunks.join(', ')}`, undefined, fileId);
-                    setProgress(Math.round((completed / totalChunks) * 100), 'Upload failed', undefined, undefined, chunkStatus, fileId, file.name);
+                    setProgress(Math.round((completed / totalChunks) * 100), 'Upload failed.', undefined, undefined, chunkStatus, fileId, file.name);
                     cleanupUI(fileId);
                     return;
                 }
@@ -447,21 +440,22 @@ function uploadFile(file) {
                     setStatus('File uploaded, but could not verify integrity.', undefined, fileId);
                 }
             } catch (e) {
-                setStatus('File uploaded, but verification failed.', e.message, fileId);
+                setStatus('File uploaded, but verification failed.', '', fileId);
             }
             cleanupUI(fileId);
             localStorage.removeItem('upload_' + fileId);
         }
-
         function cleanupUI(fileId) {
             const fileInput = document.getElementById('fileInput');
             if (fileInput) fileInput.disabled = false;
-            const pauseBtn = document.getElementById('pauseResumeBtn');
-            if (pauseBtn) pauseBtn.disabled = true;
-            const abortBtn = document.getElementById('abortBtn');
-            if (abortBtn) abortBtn.disabled = true;
+            const controlsDiv = document.getElementById('fileControls_' + fileId);
+            if (controlsDiv) {
+                const pauseBtn = document.getElementById('pauseBtn_' + fileId);
+                if (pauseBtn) pauseBtn.disabled = true;
+                const abortBtn = document.getElementById('abortBtn_' + fileId);
+                if (abortBtn) abortBtn.disabled = true;
+            }
         }
-
         runQueue();
     })();
 }
