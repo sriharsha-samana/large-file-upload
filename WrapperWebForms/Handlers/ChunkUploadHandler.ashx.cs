@@ -2,7 +2,7 @@ using System;
 using System.Web;
 using LargeFileUpload.Core;
 
-namespace LargeFileUpload.Handlers
+namespace WrapperWebForms.Handlers
 {
     public class ChunkUploadHandler : IHttpHandler
     {

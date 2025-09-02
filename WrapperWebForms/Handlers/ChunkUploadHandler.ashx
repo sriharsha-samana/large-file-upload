@@ -1,1 +1,1 @@
-<%@ WebHandler Language="C#" Class="LargeFileUpload.Handlers.ChunkUploadHandler" %>
+<%@ WebHandler Language="C#" Class="WrapperWebForms.Handlers.ChunkUploadHandler" %>
