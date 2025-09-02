@@ -163,7 +163,7 @@ async function uploadFile(file) {
 
 	// Fetch uploaded chunks from .ashx handler for resumable support
 	try {
-		const resp = await fetch(`/Handlers/ChunkUploadHandler.ashx?action=chunks&fileId=${encodeURIComponent(fileId)}`);
+		const resp = await fetch(`Handlers/ChunkUploadHandler.ashx?action=chunks&fileId=${encodeURIComponent(fileId)}`);
 		if (resp.ok) {
 			const arr = await resp.json();
 			if (Array.isArray(arr)) {
@@ -217,7 +217,7 @@ async function uploadFile(file) {
 				formData.append('chunkHash', chunkHash);
 				formData.append('fileName', file.name);
 				formData.append('chunk', new Blob([chunk]));
-				const response = await fetch('/Handlers/ChunkUploadHandler.ashx?action=upload', {
+				const response = await fetch('Handlers/ChunkUploadHandler.ashx?action=upload', {
 					method: 'POST',
 					body: formData
 				});
@@ -288,7 +288,7 @@ async function uploadFile(file) {
 		setProgress(100, 'Upload complete!', undefined, undefined, chunkStatus, fileId);
 		setStatus('Upload complete! Verifying file...', undefined, fileId);
 		try {
-			const resp = await fetch(`/Handlers/ChunkUploadHandler.ashx?action=verify&fileId=${encodeURIComponent(fileId)}`);
+			const resp = await fetch(`Handlers/ChunkUploadHandler.ashx?action=verify&fileId=${encodeURIComponent(fileId)}`);
 			if (resp.ok) {
 				const { hash: serverHash } = await resp.json();
 				const clientHash = await hashChunk(await file.arrayBuffer());
