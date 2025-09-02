@@ -32,6 +32,105 @@ function addConfigControls() {
 }
 
 function setProgress(percent, text, speed, eta, chunkStatus, fileId) {
+    let container = document.getElementById('fileList');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'fileList';
+        document.querySelector('.container').appendChild(container);
+    }
+    let bar = document.getElementById('uploadProgress_' + fileId);
+    if (!bar) {
+        bar = document.createElement('progress');
+        bar.id = 'uploadProgress_' + fileId;
+        bar.max = 100;
+        bar.style.width = '100%';
+        bar.style.height = '20px';
+        bar.style.marginBottom = '0.5em';
+        container.appendChild(bar);
+    }
+    bar.value = percent;
+    let label = document.getElementById('progressLabel_' + fileId);
+    if (!label) {
+        label = document.createElement('div');
+        label.id = 'progressLabel_' + fileId;
+        label.style.fontSize = '0.98em';
+        label.style.color = '#555';
+        label.style.marginBottom = '0.5em';
+        container.appendChild(label);
+    }
+    let details = text || '';
+    if (speed !== undefined && eta !== undefined) {
+        details += ` | Speed: ${speed} MB/s | ETA: ${eta}s`;
+    }
+    label.textContent = details;
+    let chunkDiv = document.getElementById('chunkProgress_' + fileId);
+    if (!chunkDiv) {
+        chunkDiv = document.createElement('div');
+        chunkDiv.id = 'chunkProgress_' + fileId;
+        chunkDiv.style.marginBottom = '0.5em';
+        container.appendChild(chunkDiv);
+    }
+    if (chunkStatus) {
+        chunkDiv.innerHTML = chunkStatus.map((s, i) => `<span style='color:${s==="uploaded"?"#388e3c":s==="failed"?"#d32f2f":"#aaa"};font-weight:600;margin-right:4px;'>${i+1}</span>`).join(' ');
+    }
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) fileInput.disabled = percent < 100;
+}
+
+function setStatus(text, errorDetails, fileId) {
+    let status = document.getElementById('mainStatus');
+    if (status) {
+        status.textContent = text || '';
+        status.style.color = text && text.toLowerCase().includes('failed') ? '#d32f2f' : '#1976d2';
+    }
+    let errorDiv = document.getElementById('mainError');
+    if (errorDiv) {
+        if (errorDetails) {
+            errorDiv.textContent = errorDetails;
+            errorDiv.style.display = '';
+        } else {
+            errorDiv.textContent = '';
+            errorDiv.style.display = 'none';
+        }
+    }
+}
+
+function addPauseResumeButton(uploadFn) {
+    let btn = document.getElementById('pauseResumeBtn');
+    if (!btn) {
+        btn = document.createElement('button');
+        btn.id = 'pauseResumeBtn';
+        btn.textContent = 'Pause';
+        btn.className = 'upload-btn';
+        btn.style.marginRight = '1em';
+        document.querySelector('.container').appendChild(btn);
+    }
+    btn.onclick = function () {
+        isPaused = !isPaused;
+        btn.textContent = isPaused ? 'Resume' : 'Pause';
+        if (!isPaused) uploadFn();
+    };
+    btn.disabled = false;
+}
+
+function addAbortButton() {
+    let btn = document.getElementById('abortBtn');
+    if (!btn) {
+        btn = document.createElement('button');
+        btn.id = 'abortBtn';
+        btn.textContent = 'Abort';
+        btn.className = 'upload-btn';
+        document.querySelector('.container').appendChild(btn);
+    }
+    btn.onclick = function () {
+        isAborted = true;
+        setStatus('Upload aborted by user.');
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput) fileInput.disabled = false;
+    };
+}
+
+function setProgress(percent, text, speed, eta, chunkStatus, fileId) {
 	let container = document.getElementById('fileProgressContainer');
 	if (!container) {
 		container = document.createElement('div');
@@ -88,31 +187,20 @@ function addAbortButton() {
 }
 
 function setStatus(text, errorDetails, fileId) {
-	let container = document.getElementById('fileProgressContainer');
-	if (!container) {
-		container = document.createElement('div');
-		container.id = 'fileProgressContainer';
-		document.body.appendChild(container);
+	let status = document.getElementById('mainStatus');
+	if (status) {
+		status.textContent = text || '';
+		status.style.color = text && text.toLowerCase().includes('failed') ? '#d32f2f' : '#1976d2';
 	}
-	let status = document.getElementById('uploadStatus_' + fileId);
-	if (!status) {
-		status = document.createElement('div');
-		status.id = 'uploadStatus_' + fileId;
-		container.appendChild(status);
-	}
-	status.textContent = text;
-	if (errorDetails) {
-		let errDiv = document.getElementById('errorDetails_' + fileId);
-		if (!errDiv) {
-			errDiv = document.createElement('div');
-			errDiv.id = 'errorDetails_' + fileId;
-			errDiv.style.color = 'red';
-			container.appendChild(errDiv);
+	let errorDiv = document.getElementById('mainError');
+	if (errorDiv) {
+		if (errorDetails) {
+			errorDiv.textContent = errorDetails;
+			errorDiv.style.display = '';
+		} else {
+			errorDiv.textContent = '';
+			errorDiv.style.display = 'none';
 		}
-		errDiv.textContent = errorDetails;
-	} else {
-		let errDiv = document.getElementById('errorDetails_' + fileId);
-		if (errDiv) errDiv.textContent = '';
 	}
 }
 
@@ -122,7 +210,9 @@ function addPauseResumeButton(uploadFn) {
 		btn = document.createElement('button');
 		btn.id = 'pauseResumeBtn';
 		btn.textContent = 'Pause';
-		document.body.appendChild(btn);
+		btn.className = 'upload-btn';
+		btn.style.marginRight = '1em';
+		document.querySelector('.container').appendChild(btn);
 	}
 	btn.onclick = function () {
 		isPaused = !isPaused;
