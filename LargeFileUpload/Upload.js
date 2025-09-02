@@ -471,3 +471,5 @@ document.getElementById('fileInput').addEventListener('change', function (e) {
 	const files = Array.from(e.target.files);
 	Promise.all(files.map(file => uploadFile(file)));
 });
+// Ensure controls are rendered on page load
+window.addEventListener('DOMContentLoaded', addConfigControls);
