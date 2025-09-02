@@ -236,6 +236,10 @@ function setStatus(text, errorDetails, fileId) {
             statusMsg.style.color = '#d32f2f';
         } else if (text && text.toLowerCase().includes('aborted')) {
             statusMsg.style.color = '#d32f2f';
+        } else if (text && text.toLowerCase().includes('only .zip files are allowed')) {
+            statusMsg.style.color = '#d32f2f';
+        } else if (text && text.toLowerCase().includes('file is too large')) {
+            statusMsg.style.color = '#d32f2f';
         } else {
             statusMsg.style.color = '#1976d2';
         }
@@ -248,8 +252,9 @@ function setStatus(text, errorDetails, fileId) {
         errorDiv.style.display = 'none';
         document.querySelector('.container').appendChild(errorDiv);
     }
+    // Only show crisp error message, not stack or details
     if (errorDetails) {
-        errorDiv.textContent = errorDetails;
+        errorDiv.textContent = typeof errorDetails === 'string' ? errorDetails.split('\n')[0] : '';
         errorDiv.style.display = '';
     } else {
         errorDiv.textContent = '';
@@ -276,9 +281,10 @@ async function hashChunk(chunkOrBuffer) {
 
 function uploadFile(file) {
     addConfigControls();
-    // Always pass a Blob to hashChunk for the first chunk
+    // Always show file card and status, even for validation errors
     hashChunk(file.slice(0, CHUNK_SIZE)).then(async fileId => {
         setProgress(0, '', undefined, undefined, [], fileId, file.name);
+        // Show error status in file card for invalid extension or size
         if (!file.name.endsWith('.zip')) {
             setStatus('Only .zip files are allowed!', undefined, fileId);
             return;
@@ -308,7 +314,7 @@ function uploadFile(file) {
                 }
             }
         } catch (e) {
-            setStatus('Could not check uploaded chunks. Starting from scratch.', e.message, fileId);
+            setStatus('Could not check uploaded chunks. Starting from scratch.', (e && e.message) ? e.message.split('\n')[0] : '', fileId);
         }
 
         let queue = [];
