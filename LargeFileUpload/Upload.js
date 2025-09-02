@@ -10,9 +10,7 @@ let throttleMs = 0;
 
 function addConfigControls() {
     let uploaderCard = document.querySelector('.container');
-    // Fix: Do not overwrite document.body, always use existing .container
     if (!uploaderCard) {
-        // If not found, fallback to body, but do NOT clear innerHTML
         uploaderCard = document.createElement('div');
         uploaderCard.className = 'container';
         uploaderCard.style.maxWidth = '600px';
@@ -22,7 +20,12 @@ function addConfigControls() {
         uploaderCard.style.borderRadius = '16px';
         uploaderCard.style.background = '#fff';
         uploaderCard.style.padding = '2.5em 2em';
-        document.body.appendChild(uploaderCard);
+        // Insert at top of body
+        if (document.body.firstChild) {
+            document.body.insertBefore(uploaderCard, document.body.firstChild);
+        } else {
+            document.body.appendChild(uploaderCard);
+        }
     }
     let configDiv = document.getElementById('uploadConfig');
     if (!configDiv) {
@@ -51,7 +54,8 @@ function addConfigControls() {
                 </label>
             </div>
         `;
-        uploaderCard.insertBefore(configDiv, uploaderCard.firstChild.nextSibling);
+        // Insert configDiv as first child of uploaderCard
+        uploaderCard.insertBefore(configDiv, uploaderCard.firstChild);
         document.getElementById('chunkSizeInput').addEventListener('change', e => {
             CHUNK_SIZE = parseInt(e.target.value) * 1024 * 1024;
         });
@@ -61,6 +65,7 @@ function addConfigControls() {
         document.getElementById('maxRetriesInput').addEventListener('change', e => {
             MAX_RETRIES = parseInt(e.target.value);
         });
+        console.log('Upload controls rendered: chunk size, concurrency, max retries');
     }
     let fileInput = document.getElementById('fileInput');
     if (!fileInput) {
