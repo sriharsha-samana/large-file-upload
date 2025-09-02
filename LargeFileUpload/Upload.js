@@ -1,4 +1,9 @@
-﻿// upload.aspx.js - Full-featured chunked upload for ASP.NET Web Forms (.ashx handler endpoints)
+﻿    // Show 'Upload aborted by user.' if aborted
+    const fileState = (window.fileUploadStates && window.fileUploadStates[fileId]) || {};
+    if (fileState.isAborted) {
+        setStatus('Upload aborted by user.', undefined, fileId);
+    }
+// upload.aspx.js - Full-featured chunked upload for ASP.NET Web Forms (.ashx handler endpoints)
 // Adapted from upload_old.js
 
 let CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
