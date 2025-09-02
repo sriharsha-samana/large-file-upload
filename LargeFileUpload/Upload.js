@@ -91,7 +91,7 @@ function addConfigControls() {
     };
 }
 
-function setProgress(percent, text, speed, eta, chunkStatus, fileId) {
+function setProgress(percent, text, speed, eta, chunkStatus, fileId, fileName) {
     let container = document.getElementById('fileList');
     if (!container) {
         container = document.createElement('div');
@@ -122,7 +122,7 @@ function setProgress(percent, text, speed, eta, chunkStatus, fileId) {
         nameLabel.style.color = '#1976d2';
         fileCard.appendChild(nameLabel);
     }
-    nameLabel.textContent = fileId;
+    nameLabel.textContent = fileName || fileId;
     let bar = document.getElementById('uploadProgress_' + fileId);
     if (!bar) {
         bar = document.createElement('progress');
@@ -232,7 +232,13 @@ function setStatus(text, errorDetails, fileId) {
     let statusMsg = document.getElementById('fileStatus_' + fileId);
     if (statusMsg) {
         statusMsg.textContent = text || '';
-        statusMsg.style.color = text && text.toLowerCase().includes('failed') ? '#d32f2f' : '#1976d2';
+        if (text && text.toLowerCase().includes('failed')) {
+            statusMsg.style.color = '#d32f2f';
+        } else if (text && text.toLowerCase().includes('aborted')) {
+            statusMsg.style.color = '#d32f2f';
+        } else {
+            statusMsg.style.color = '#1976d2';
+        }
     }
     let errorDiv = document.getElementById('mainError');
     if (!errorDiv) {
@@ -249,213 +255,6 @@ function setStatus(text, errorDetails, fileId) {
         errorDiv.textContent = '';
         errorDiv.style.display = 'none';
     }
-}
-
-function addPauseResumeButton(uploadFn) {
-    let btn = document.getElementById('pauseResumeBtn');
-    if (!btn) {
-        btn = document.createElement('button');
-        btn.id = 'pauseResumeBtn';
-        btn.textContent = 'Pause';
-        btn.className = 'upload-btn';
-        btn.style.marginRight = '1em';
-        document.querySelector('.container').appendChild(btn);
-    }
-    btn.onclick = function () {
-        isPaused = !isPaused;
-        btn.textContent = isPaused ? 'Resume' : 'Pause';
-        if (!isPaused) uploadFn();
-    };
-    btn.disabled = false;
-}
-
-function addAbortButton() {
-    let btn = document.getElementById('abortBtn');
-    if (!btn) {
-        btn = document.createElement('button');
-        btn.id = 'abortBtn';
-        btn.textContent = 'Abort';
-        btn.className = 'upload-btn';
-        document.querySelector('.container').appendChild(btn);
-    }
-    btn.onclick = function () {
-        isAborted = true;
-        setStatus('Upload aborted by user.');
-        const fileInput = document.getElementById('fileInput');
-        if (fileInput) fileInput.disabled = false;
-    };
-}
-
-function setProgress(percent, text, speed, eta, chunkStatus, fileId) {
-    let container = document.getElementById('fileList');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'fileList';
-        document.querySelector('.container').appendChild(container);
-    }
-    let fileCard = document.getElementById('fileCard_' + fileId);
-    if (!fileCard) {
-        fileCard = document.createElement('div');
-        fileCard.id = 'fileCard_' + fileId;
-        fileCard.className = 'file-card';
-        fileCard.style.display = 'flex';
-        fileCard.style.flexDirection = 'column';
-        fileCard.style.gap = '0.5em';
-        fileCard.style.background = '#f6f8fa';
-        fileCard.style.borderRadius = '10px';
-        fileCard.style.padding = '1.2em 1em';
-        fileCard.style.marginBottom = '1.2em';
-        fileCard.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
-        container.appendChild(fileCard);
-    }
-    let nameLabel = document.getElementById('fileName_' + fileId);
-    if (!nameLabel) {
-        nameLabel = document.createElement('div');
-        nameLabel.id = 'fileName_' + fileId;
-        nameLabel.style.fontWeight = '600';
-        nameLabel.style.fontSize = '1.08em';
-        nameLabel.style.color = '#1976d2';
-        fileCard.appendChild(nameLabel);
-    }
-    nameLabel.textContent = fileId;
-    let bar = document.getElementById('uploadProgress_' + fileId);
-    if (!bar) {
-        bar = document.createElement('progress');
-        bar.id = 'uploadProgress_' + fileId;
-        bar.max = 100;
-        bar.style.width = '100%';
-        bar.style.height = '18px';
-        bar.style.marginBottom = '0.5em';
-        fileCard.appendChild(bar);
-    }
-    bar.value = percent;
-    let label = document.getElementById('progressLabel_' + fileId);
-    if (!label) {
-        label = document.createElement('div');
-        label.id = 'progressLabel_' + fileId;
-        label.style.fontSize = '0.98em';
-        label.style.color = '#555';
-        label.style.marginBottom = '0.5em';
-        fileCard.appendChild(label);
-    }
-    let details = `${percent.toFixed(1)}%`;
-    if (speed !== undefined && eta !== undefined && percent < 100) {
-        details += ` | Speed: ${speed} MB/s | ETA: ${eta}s`;
-    }
-    label.textContent = details;
-    let statusMsg = document.getElementById('fileStatus_' + fileId);
-    if (!statusMsg) {
-        statusMsg = document.createElement('div');
-        statusMsg.id = 'fileStatus_' + fileId;
-        statusMsg.style.fontSize = '0.98em';
-        statusMsg.style.fontWeight = '500';
-        statusMsg.style.marginBottom = '0.5em';
-        fileCard.appendChild(statusMsg);
-    }
-    if (percent === 100) {
-        statusMsg.textContent = 'Upload complete';
-        statusMsg.style.color = '#388e3c';
-    } else if (details.toLowerCase().includes('failed')) {
-        statusMsg.textContent = 'Upload failed';
-        statusMsg.style.color = '#d32f2f';
-    } else {
-        statusMsg.textContent = 'Uploading...';
-        statusMsg.style.color = '#1976d2';
-    }
-    // Controls (pause/abort) inside file card
-    let controlsDiv = document.getElementById('fileControls_' + fileId);
-    if (!controlsDiv) {
-        controlsDiv = document.createElement('div');
-        controlsDiv.id = 'fileControls_' + fileId;
-        controlsDiv.style.display = 'flex';
-        controlsDiv.style.gap = '1em';
-        controlsDiv.style.marginTop = '0.5em';
-        fileCard.appendChild(controlsDiv);
-        // Pause button
-        let pauseBtn = document.createElement('button');
-        pauseBtn.id = 'pauseBtn_' + fileId;
-        pauseBtn.textContent = 'Pause';
-        pauseBtn.className = 'upload-btn';
-        pauseBtn.style.background = '#1976d2';
-        pauseBtn.style.color = '#fff';
-        pauseBtn.style.border = 'none';
-        pauseBtn.style.borderRadius = '6px';
-        pauseBtn.style.padding = '0.5em 1.2em';
-        pauseBtn.style.fontWeight = '500';
-        pauseBtn.style.cursor = 'pointer';
-        controlsDiv.appendChild(pauseBtn);
-        pauseBtn.onclick = function () {
-            window.fileUploadStates = window.fileUploadStates || {};
-            window.fileUploadStates[fileId] = window.fileUploadStates[fileId] || {};
-            let state = window.fileUploadStates[fileId];
-            state.isPaused = !state.isPaused;
-            pauseBtn.textContent = state.isPaused ? 'Resume' : 'Pause';
-            // You need to handle pausing/resuming in your upload logic using state.isPaused
-        };
-        // Abort button
-        let abortBtn = document.createElement('button');
-        abortBtn.id = 'abortBtn_' + fileId;
-        abortBtn.textContent = 'Abort';
-        abortBtn.className = 'upload-btn';
-        abortBtn.style.background = '#d32f2f';
-        abortBtn.style.color = '#fff';
-        abortBtn.style.border = 'none';
-        abortBtn.style.borderRadius = '6px';
-        abortBtn.style.padding = '0.5em 1.2em';
-        abortBtn.style.fontWeight = '500';
-        abortBtn.style.cursor = 'pointer';
-        controlsDiv.appendChild(abortBtn);
-        abortBtn.onclick = function () {
-            window.fileUploadStates = window.fileUploadStates || {};
-            window.fileUploadStates[fileId] = window.fileUploadStates[fileId] || {};
-            let state = window.fileUploadStates[fileId];
-            state.isAborted = true;
-            setStatus('Upload aborted by user.', undefined, fileId);
-            // You need to handle aborting in your upload logic using state.isAborted
-        };
-    }
-    // Update button states
-    let pauseBtn = document.getElementById('pauseBtn_' + fileId);
-    let abortBtn = document.getElementById('abortBtn_' + fileId);
-    if (pauseBtn) pauseBtn.disabled = percent === 100;
-    if (abortBtn) abortBtn.disabled = percent === 100;
-    const fileInput = document.getElementById('fileInput');
-    if (fileInput) fileInput.disabled = percent < 100;
-}
-
-function addPauseResumeButton(uploadFn) {
-    let btn = document.getElementById('pauseResumeBtn');
-    if (!btn) {
-        btn = document.createElement('button');
-        btn.id = 'pauseResumeBtn';
-        btn.textContent = 'Pause';
-        btn.className = 'upload-btn';
-        btn.style.marginRight = '1em';
-        document.querySelector('.container').appendChild(btn);
-    }
-    btn.onclick = function () {
-        isPaused = !isPaused;
-        btn.textContent = isPaused ? 'Resume' : 'Pause';
-        if (!isPaused) uploadFn();
-    };
-    btn.disabled = false;
-}
-
-function addAbortButton() {
-    let btn = document.getElementById('abortBtn');
-    if (!btn) {
-        btn = document.createElement('button');
-        btn.id = 'abortBtn';
-        btn.textContent = 'Abort';
-        btn.className = 'upload-btn';
-        document.querySelector('.container').appendChild(btn);
-    }
-    btn.onclick = function () {
-        isAborted = true;
-        setStatus('Upload aborted by user.');
-        const fileInput = document.getElementById('fileInput');
-        if (fileInput) fileInput.disabled = false;
-    };
 }
 
 async function hashChunk(chunk) {
@@ -512,9 +311,6 @@ async function uploadFile(file) {
 	let startTime = Date.now();
 	let bytesUploaded = completed * CHUNK_SIZE;
 
-	addPauseResumeButton(() => runQueue());
-	addAbortButton();
-
 	async function uploadChunk(i) {
 		let attempts = 0;
 		let delay = 1000;
@@ -557,7 +353,7 @@ async function uploadFile(file) {
 				let elapsed = (Date.now() - startTime) / 1000;
 				let speed = (bytesUploaded / 1024 / 1024 / elapsed).toFixed(2);
 				let eta = ((file.size - bytesUploaded) / 1024 / 1024 / speed).toFixed(0);
-				setProgress(Math.round((completed / totalChunks) * 100), `Chunk ${i + 1}/${totalChunks} uploaded`, speed, eta, chunkStatus, fileId);
+				setProgress(Math.round((completed / totalChunks) * 100), `Chunk ${i + 1}/${totalChunks} uploaded`, speed, eta, chunkStatus, fileId, file.name);
 				localStorage.setItem('upload_' + fileId, JSON.stringify(chunkStatus.map((s, idx) => s === 'uploaded' ? idx : null).filter(x => x !== null)));
 				if (throttleMs > 0) await new Promise(res => setTimeout(res, throttleMs));
 				return i;
@@ -606,12 +402,12 @@ async function uploadFile(file) {
 				return;
 			} else {
 				setStatus(`Upload failed. The following chunks could not be uploaded after all retries: ${failedChunks.join(', ')}`, undefined, fileId);
-				setProgress(Math.round((completed / totalChunks) * 100), 'Upload failed', undefined, undefined, chunkStatus, fileId);
+				setProgress(Math.round((completed / totalChunks) * 100), 'Upload failed', undefined, undefined, chunkStatus, fileId, file.name);
 				cleanupUI(fileId);
 				return;
 			}
 		}
-		setProgress(100, 'Upload complete!', undefined, undefined, chunkStatus, fileId);
+		setProgress(100, 'Upload complete!', undefined, undefined, chunkStatus, fileId, file.name);
 		setStatus('Upload complete! Verifying file...', undefined, fileId);
 		try {
 			const resp = await fetch(`/FileUploadHandler.ashx?action=verify&fileId=${encodeURIComponent(fileId)}`);
