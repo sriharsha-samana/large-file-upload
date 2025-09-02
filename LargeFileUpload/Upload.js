@@ -257,9 +257,17 @@ function setStatus(text, errorDetails, fileId) {
     }
 }
 
-async function hashChunk(chunk) {
-	const hashBuffer = await crypto.subtle.digest('SHA-256', chunk);
-	return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+async function hashChunk(chunkOrBuffer) {
+    let buffer;
+    if (chunkOrBuffer instanceof ArrayBuffer) {
+        buffer = chunkOrBuffer;
+    } else if (chunkOrBuffer instanceof Blob) {
+        buffer = await chunkOrBuffer.arrayBuffer();
+    } else {
+        throw new Error('Invalid chunk type for hashing');
+    }
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 function uploadFile(file) {
