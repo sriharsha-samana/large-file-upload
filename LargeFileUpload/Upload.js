@@ -148,7 +148,18 @@ function setProgress(percent, text, speed, eta, chunkStatus, fileId, fileName) {
     }
     let details = `${percent.toFixed(1)}%`;
     if (speed !== undefined && eta !== undefined && percent < 100) {
-        details += ` | Speed: ${speed} MB/s | Remaining Time: ${eta}s`;
+        let etaSec = parseInt(eta, 10);
+        let etaStr = '';
+        if (isNaN(etaSec) || etaSec < 0) {
+            etaStr = 'calculating...';
+        } else if (etaSec < 60) {
+            etaStr = `${etaSec}s`;
+        } else {
+            let min = Math.floor(etaSec / 60);
+            let sec = etaSec % 60;
+            etaStr = `${min}m ${sec}s`;
+        }
+        details += ` | Speed: ${speed} MB/s | Remaining Time: ${etaStr}`;
     }
     label.textContent = details;
     let statusMsg = document.getElementById('fileStatus_' + fileId);
