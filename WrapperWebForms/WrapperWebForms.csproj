@@ -14,7 +14,7 @@
   <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{D1A1B1C1-0000-4000-8000-000000000001}</ProjectGuid>
-    <OutputType>Library</OutputType>
+  <!-- OutputType removed for web application -->
     <RootNamespace>WrapperWebForms</RootNamespace>
     <AssemblyName>WrapperWebForms</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
@@ -22,6 +22,13 @@
     <UseIISExpress>false</UseIISExpress>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="System.Web" />
+    <Reference Include="LargeFileUpload.Core">
+      <HintPath>..\LargeFileUpload.Core\bin\Debug\LargeFileUpload.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.1\lib\net40\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Content Include="web.config" />
   <Content Include="Pages\Upload.aspx" />
   <Content Include="Scripts\Upload.aspx.js" />
