@@ -17,6 +17,6 @@
     <input type="file" id="fileInput" multiple />
     <button onclick="startUpload()">Upload</button>
     <div class="file-list" id="fileList"></div>
-    <script src="../Scripts/Upload.aspx.js"></script>
+    <script src="/Scripts/Upload.aspx.js"></script>
 </body>
 </html>
