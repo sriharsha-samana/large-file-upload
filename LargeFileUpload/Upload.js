@@ -262,183 +262,183 @@ async function hashChunk(chunk) {
 	return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function uploadFile(file) {
-	addConfigControls();
-	if (!file.name.endsWith('.zip')) {
-		setStatus('Only .zip files are allowed!', undefined, file.name);
-		return;
-	}
-	if (file.size > 100 * 1024 * 1024 * 1024) {
-		setStatus('File is too large!', undefined, file.name);
-		return;
-	}
-	setStatus('Preparing upload...', undefined, file.name);
-	isAborted = false;
-	const fileId = await hashChunk(await file.slice(0, CHUNK_SIZE).arrayBuffer());
-	const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-	let uploadedChunks = new Set();
+function uploadFile(file) {
+    addConfigControls();
+    hashChunk(file.slice(0, CHUNK_SIZE).arrayBuffer()).then(async fileId => {
+        setProgress(0, '', undefined, undefined, [], fileId, file.name);
+        if (!file.name.endsWith('.zip')) {
+            setStatus('Only .zip files are allowed!', undefined, fileId);
+            return;
+        }
+        if (file.size > 100 * 1024 * 1024 * 1024) {
+            setStatus('File is too large!', undefined, fileId);
+            return;
+        }
+        setStatus('Preparing upload...', undefined, fileId);
+        isAborted = false;
+        const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+        let uploadedChunks = new Set();
+        let persisted = localStorage.getItem('upload_' + fileId);
+        if (persisted) {
+            try {
+                let arr = JSON.parse(persisted);
+                if (Array.isArray(arr)) uploadedChunks = new Set(arr);
+            } catch { }
+        }
+        // Fetch uploaded chunks from .ashx handler for resumable support
+        try {
+            const resp = await fetch(`/FileUploadHandler.ashx?action=chunks&fileId=${encodeURIComponent(fileId)}`);
+            if (resp.ok) {
+                const arr = await resp.json();
+                if (Array.isArray(arr)) {
+                    uploadedChunks = new Set(arr);
+                }
+            }
+        } catch (e) {
+            setStatus('Could not check uploaded chunks. Starting from scratch.', e.message, fileId);
+        }
 
-	let persisted = localStorage.getItem('upload_' + fileId);
-	if (persisted) {
-		try {
-			let arr = JSON.parse(persisted);
-			if (Array.isArray(arr)) uploadedChunks = new Set(arr);
-		} catch { }
-	}
+        let queue = [];
+        for (let i = 0; i < totalChunks; i++) {
+            if (!uploadedChunks.has(i)) queue.push(i);
+        }
 
-	// Fetch uploaded chunks from .ashx handler for resumable support
-	try {
-		const resp = await fetch(`/FileUploadHandler.ashx?action=chunks&fileId=${encodeURIComponent(fileId)}`);
-		if (resp.ok) {
-			const arr = await resp.json();
-			if (Array.isArray(arr)) {
-				uploadedChunks = new Set(arr);
-			}
-		}
-	} catch (e) {
-		setStatus('Could not check uploaded chunks. Starting from scratch.', e.message, fileId);
-	}
+        let completed = uploadedChunks.size;
+        let failedChunks = [];
+        let chunkStatus = Array(totalChunks).fill('pending');
+        for (let idx of uploadedChunks) chunkStatus[idx] = 'uploaded';
+        let startTime = Date.now();
+        let bytesUploaded = completed * CHUNK_SIZE;
 
-	let queue = [];
-	for (let i = 0; i < totalChunks; i++) {
-		if (!uploadedChunks.has(i)) queue.push(i);
-	}
+        async function uploadChunk(i) {
+            let attempts = 0;
+            let delay = 1000;
+            while (attempts < MAX_RETRIES) {
+                if (isAborted) throw new Error('Upload aborted');
+                if (isPaused) {
+                    setStatus('Upload paused.', undefined, fileId);
+                    await new Promise(res => {
+                        let interval = setInterval(() => {
+                            if (!isPaused) {
+                                clearInterval(interval);
+                                res();
+                            }
+                        }, 500);
+                    });
+                }
+                try {
+                    const start = i * CHUNK_SIZE;
+                    const end = Math.min(file.size, start + CHUNK_SIZE);
+                    const chunk = await file.slice(start, end).arrayBuffer();
+                    const chunkHash = await hashChunk(chunk);
+                    const formData = new FormData();
+                    formData.append('fileId', fileId);
+                    formData.append('chunkIndex', i);
+                    formData.append('totalChunks', totalChunks);
+                    formData.append('chunkHash', chunkHash);
+                    formData.append('fileName', file.name);
+                    formData.append('chunk', new Blob([chunk]));
+                    const response = await fetch('/FileUploadHandler.ashx?action=upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    if (!response.ok) {
+                        let errText = await response.text();
+                        throw new Error(`Chunk ${i} failed: ${errText}`);
+                    }
+                    chunkStatus[i] = 'uploaded';
+                    completed++;
+                    bytesUploaded += (end - start);
+                    let elapsed = (Date.now() - startTime) / 1000;
+                    let speed = (bytesUploaded / 1024 / 1024 / elapsed).toFixed(2);
+                    let eta = ((file.size - bytesUploaded) / 1024 / 1024 / speed).toFixed(0);
+                    setProgress(Math.round((completed / totalChunks) * 100), `Chunk ${i + 1}/${totalChunks} uploaded`, speed, eta, chunkStatus, fileId, file.name);
+                    localStorage.setItem('upload_' + fileId, JSON.stringify(chunkStatus.map((s, idx) => s === 'uploaded' ? idx : null).filter(x => x !== null)));
+                    if (throttleMs > 0) await new Promise(res => setTimeout(res, throttleMs));
+                    return i;
+                } catch (err) {
+                    attempts++;
+                    chunkStatus[i] = 'failed';
+                    setStatus(`Chunk ${i} failed (attempt ${attempts}): ${err.message}`, err.stack, fileId);
+                    if (attempts >= MAX_RETRIES) {
+                        failedChunks.push(i);
+                        console.error(`Chunk ${i} failed after ${MAX_RETRIES} attempts:`, err);
+                        return null;
+                    }
+                    await new Promise(res => setTimeout(res, delay));
+                    delay *= 2;
+                }
+            }
+        }
 
-	let completed = uploadedChunks.size;
-	let failedChunks = [];
-	let chunkStatus = Array(totalChunks).fill('pending');
-	for (let idx of uploadedChunks) chunkStatus[idx] = 'uploaded';
-	let startTime = Date.now();
-	let bytesUploaded = completed * CHUNK_SIZE;
+        async function runQueue() {
+            let running = new Set();
+            let next = () => queue.length > 0 ? queue.shift() : null;
+            let retryCount = 0;
+            let maxTotalRetries = 2;
+            while ((queue.length > 0 || running.size > 0) && !isAborted) {
+                while (running.size < CONCURRENCY && queue.length > 0) {
+                    const i = next();
+                    if (i !== null) {
+                        const p = uploadChunk(i).then(idx => running.delete(p));
+                        running.add(p);
+                    }
+                }
+                if (running.size > 0) await Promise.race(Array.from(running));
+            }
+            if (isAborted) {
+                setStatus('Upload aborted.', undefined, fileId);
+                cleanupUI(fileId);
+                return;
+            }
+            if (failedChunks.length > 0) {
+                if (retryCount < maxTotalRetries) {
+                    retryCount++;
+                    setStatus(`Upload finished with errors. Retrying failed chunks: ${failedChunks.join(', ')}`, undefined, fileId);
+                    queue = failedChunks.slice();
+                    failedChunks = [];
+                    await runQueue();
+                    return;
+                } else {
+                    setStatus(`Upload failed. The following chunks could not be uploaded after all retries: ${failedChunks.join(', ')}`, undefined, fileId);
+                    setProgress(Math.round((completed / totalChunks) * 100), 'Upload failed', undefined, undefined, chunkStatus, fileId, file.name);
+                    cleanupUI(fileId);
+                    return;
+                }
+            }
+            setProgress(100, 'Upload complete!', undefined, undefined, chunkStatus, fileId, file.name);
+            setStatus('Upload complete! Verifying file...', undefined, fileId);
+            try {
+                const resp = await fetch(`/FileUploadHandler.ashx?action=verify&fileId=${encodeURIComponent(fileId)}`);
+                if (resp.ok) {
+                    const { hash: serverHash } = await resp.json();
+                    const clientHash = await hashChunk(await file.arrayBuffer());
+                    if (serverHash && clientHash && serverHash === clientHash) {
+                        setStatus('File integrity verified!', undefined, fileId);
+                    } else {
+                        setStatus('File uploaded, but integrity check failed!', undefined, fileId);
+                    }
+                } else {
+                    setStatus('File uploaded, but could not verify integrity.', undefined, fileId);
+                }
+            } catch (e) {
+                setStatus('File uploaded, but verification failed.', e.message, fileId);
+            }
+            cleanupUI(fileId);
+            localStorage.removeItem('upload_' + fileId);
+        }
 
-	async function uploadChunk(i) {
-		let attempts = 0;
-		let delay = 1000;
-		while (attempts < MAX_RETRIES) {
-			if (isAborted) throw new Error('Upload aborted');
-			if (isPaused) {
-				setStatus('Upload paused.', undefined, fileId);
-				await new Promise(res => {
-					let interval = setInterval(() => {
-						if (!isPaused) {
-							clearInterval(interval);
-							res();
-						}
-					}, 500);
-				});
-			}
-			try {
-				const start = i * CHUNK_SIZE;
-				const end = Math.min(file.size, start + CHUNK_SIZE);
-				const chunk = await file.slice(start, end).arrayBuffer();
-				const chunkHash = await hashChunk(chunk);
-				const formData = new FormData();
-				formData.append('fileId', fileId);
-				formData.append('chunkIndex', i);
-				formData.append('totalChunks', totalChunks);
-				formData.append('chunkHash', chunkHash);
-				formData.append('fileName', file.name);
-				formData.append('chunk', new Blob([chunk]));
-				const response = await fetch('/FileUploadHandler.ashx?action=upload', {
-					method: 'POST',
-					body: formData
-				});
-				if (!response.ok) {
-					let errText = await response.text();
-					throw new Error(`Chunk ${i} failed: ${errText}`);
-				}
-				chunkStatus[i] = 'uploaded';
-				completed++;
-				bytesUploaded += (end - start);
-				let elapsed = (Date.now() - startTime) / 1000;
-				let speed = (bytesUploaded / 1024 / 1024 / elapsed).toFixed(2);
-				let eta = ((file.size - bytesUploaded) / 1024 / 1024 / speed).toFixed(0);
-				setProgress(Math.round((completed / totalChunks) * 100), `Chunk ${i + 1}/${totalChunks} uploaded`, speed, eta, chunkStatus, fileId, file.name);
-				localStorage.setItem('upload_' + fileId, JSON.stringify(chunkStatus.map((s, idx) => s === 'uploaded' ? idx : null).filter(x => x !== null)));
-				if (throttleMs > 0) await new Promise(res => setTimeout(res, throttleMs));
-				return i;
-			} catch (err) {
-				attempts++;
-				chunkStatus[i] = 'failed';
-				setStatus(`Chunk ${i} failed (attempt ${attempts}): ${err.message}`, err.stack, fileId);
-				if (attempts >= MAX_RETRIES) {
-					failedChunks.push(i);
-					console.error(`Chunk ${i} failed after ${MAX_RETRIES} attempts:`, err);
-					return null;
-				}
-				await new Promise(res => setTimeout(res, delay));
-				delay *= 2;
-			}
-		}
-	}
+        function cleanupUI(fileId) {
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) fileInput.disabled = false;
+            const pauseBtn = document.getElementById('pauseResumeBtn');
+            if (pauseBtn) pauseBtn.disabled = true;
+            const abortBtn = document.getElementById('abortBtn');
+            if (abortBtn) abortBtn.disabled = true;
+        }
 
-	async function runQueue() {
-		let running = new Set();
-		let next = () => queue.length > 0 ? queue.shift() : null;
-		let retryCount = 0;
-		let maxTotalRetries = 2;
-		while ((queue.length > 0 || running.size > 0) && !isAborted) {
-			while (running.size < CONCURRENCY && queue.length > 0) {
-				const i = next();
-				if (i !== null) {
-					const p = uploadChunk(i).then(idx => running.delete(p));
-					running.add(p);
-				}
-			}
-			if (running.size > 0) await Promise.race(Array.from(running));
-		}
-		if (isAborted) {
-			setStatus('Upload aborted.', undefined, fileId);
-			cleanupUI(fileId);
-			return;
-		}
-		if (failedChunks.length > 0) {
-			if (retryCount < maxTotalRetries) {
-				retryCount++;
-				setStatus(`Upload finished with errors. Retrying failed chunks: ${failedChunks.join(', ')}`, undefined, fileId);
-				queue = failedChunks.slice();
-				failedChunks = [];
-				await runQueue();
-				return;
-			} else {
-				setStatus(`Upload failed. The following chunks could not be uploaded after all retries: ${failedChunks.join(', ')}`, undefined, fileId);
-				setProgress(Math.round((completed / totalChunks) * 100), 'Upload failed', undefined, undefined, chunkStatus, fileId, file.name);
-				cleanupUI(fileId);
-				return;
-			}
-		}
-		setProgress(100, 'Upload complete!', undefined, undefined, chunkStatus, fileId, file.name);
-		setStatus('Upload complete! Verifying file...', undefined, fileId);
-		try {
-			const resp = await fetch(`/FileUploadHandler.ashx?action=verify&fileId=${encodeURIComponent(fileId)}`);
-			if (resp.ok) {
-				const { hash: serverHash } = await resp.json();
-				const clientHash = await hashChunk(await file.arrayBuffer());
-				if (serverHash && clientHash && serverHash === clientHash) {
-					setStatus('File integrity verified!', undefined, fileId);
-				} else {
-					setStatus('File uploaded, but integrity check failed!', undefined, fileId);
-				}
-			} else {
-				setStatus('File uploaded, but could not verify integrity.', undefined, fileId);
-			}
-		} catch (e) {
-			setStatus('File uploaded, but verification failed.', e.message, fileId);
-		}
-		cleanupUI(fileId);
-		localStorage.removeItem('upload_' + fileId);
-	}
-
-	function cleanupUI(fileId) {
-		const fileInput = document.getElementById('fileInput');
-		if (fileInput) fileInput.disabled = false;
-		const pauseBtn = document.getElementById('pauseResumeBtn');
-		if (pauseBtn) pauseBtn.disabled = true;
-		const abortBtn = document.getElementById('abortBtn');
-		if (abortBtn) abortBtn.disabled = true;
-	}
-
-	runQueue();
+        runQueue();
+    });
 }
 
 function startUpload() {
