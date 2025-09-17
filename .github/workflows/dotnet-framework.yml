@@ -1,0 +1,31 @@
+name: .NET Framework 4.0 Build and Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: [self-hosted, windows]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Restore NuGet packages
+        run: nuget restore LargeFileUpload.sln
+
+
+
+      - name: Build solution
+        run: msbuild LargeFileUpload.sln /p:Configuration=Debug
+
+      - name: Run MSTest unit tests
+        run: |
+          $testDll = "LargeFileUpload.Tests\bin\Debug\LargeFileUpload.Tests.dll"
+          & "C:\Program Files\Microsoft Visual Studio\2022\Professional\Common7\IDE\Extensions\TestPlatform\vstest.console.exe" $testDll
+        shell: powershell
